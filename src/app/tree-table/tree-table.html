@@ -1,0 +1,33 @@
+<mat-tree [dataSource]="dataSource" [treeControl]="treeControl" class="tree-table">
+
+  <!-- Linha com dados -->
+  <mat-tree-node *matTreeNodeDef="let node" matTreeNodePadding>
+    <div class="tree-row">
+      <div class="tree-cell name-cell">
+        <span *ngIf="hasChild(0, node)" class="spacer"></span>
+        {{ node.name }}
+      </div>
+      <div class="tree-cell type-cell">
+        {{ node.type }}
+      </div>
+    </div>
+  </mat-tree-node>
+
+  <!-- Linha com botão de expandir/colapsar -->
+  <mat-tree-node *matTreeNodeDef="let node; when: hasChild" matTreeNodePadding>
+    <div class="tree-row">
+      <div class="tree-cell name-cell">
+        <button mat-icon-button matTreeNodeToggle>
+          <mat-icon>
+            {{ treeControl.isExpanded(node) ? 'expand_more' : 'chevron_right' }}
+          </mat-icon>
+        </button>
+        {{ node.name }}
+      </div>
+      <div class="tree-cell type-cell">
+        {{ node.type }}
+      </div>
+    </div>
+  </mat-tree-node>
+
+</mat-tree>
