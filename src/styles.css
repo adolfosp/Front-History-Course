@@ -2,3 +2,7 @@
 
 html, body { height: 100%; }
 body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
+:root {
+    --mat-tree-container-background-color: #adabab;
+    --mat-sys-surface: #b9b5b5;
+}

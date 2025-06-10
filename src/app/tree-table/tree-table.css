@@ -1,28 +1,6 @@
-.tree-table {
-  width: 100%;
-}
-
-.tree-row {
-  display: flex;
-  border-bottom: 1px solid #ccc;
-  padding: 8px;
-  align-items: center;
-}
-
-.tree-cell {
-  padding: 4px 8px;
-}
-
-.name-cell {
-  flex: 2;
+.tree-table .mat-tree {
   display: flex;
   align-items: center;
-}
-
-.type-cell {
-  flex: 1;
-}
-
-button.mat-icon-button {
-  margin-right: 4px;
+  background-color: red!important;
+  color: white;
 }
