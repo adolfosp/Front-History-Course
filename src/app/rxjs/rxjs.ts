@@ -1,6 +1,6 @@
 import { Component, OnDestroy } from '@angular/core';
 import { RouterModule } from '@angular/router';
-import { of, from, Observable } from 'rxjs';
+import { of, from, take, map } from 'rxjs';
 
 
 @Component({
@@ -19,7 +19,10 @@ export class RxjsExample implements OnDestroy {
   }
 
   ngOnInit() {
-    of(2,4,6,8).subscribe({
+    of(2,4,6,8).pipe(
+      map(value => value * 2), // Multiplica cada valor por 2
+      take(3) // Limita a 3 valores
+    ).subscribe({
       next: (value) => {
         console.log(`Valor do of: ${value}`);
       }
