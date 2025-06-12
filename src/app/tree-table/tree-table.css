@@ -4,3 +4,21 @@
   background-color: red!important;
   color: white;
 }
+
+.checklist-leaf-node {
+  margin-left: 8px;
+}
+
+mat-tree-node {
+  display: flex;
+  align-items: center;
+}
+
+mat-icon {
+  vertical-align: middle;
+}
+
+span {
+  margin-left: 6px;
+  font-size: 0.9em;
+}

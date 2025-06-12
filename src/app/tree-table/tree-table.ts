@@ -20,6 +20,12 @@ export class TodoItemFlatNode {
   expandable!: boolean;
 }
 
+interface VideoProgress {
+  watched: boolean;
+  lastWatched?: boolean;
+}
+type VideoHistory = { [path: string]: VideoProgress };
+
 const TREE_DATA = {
   'Documents': {
     'Resume.docx': null,
@@ -74,7 +80,7 @@ export class ChecklistDatabase {
     this._data = this.buildFileTree(TREE_DATA, 0);
   }
 
- 
+
   buildFileTree(value: any, level: number) {
     let data: any[] = [];
     for (let k in value) {
@@ -110,6 +116,7 @@ export class ChecklistDatabase {
   providers: [ChecklistDatabase]
 })
 export class TreeTable {
+
   flatNodeMap: Map<TodoItemFlatNode, TodoItemNode> = new Map<TodoItemFlatNode, TodoItemNode>();
 
   nestedNodeMap: Map<TodoItemNode, TodoItemFlatNode> = new Map<TodoItemNode, TodoItemFlatNode>();
@@ -121,6 +128,7 @@ export class TreeTable {
   dataSource: MatTreeFlatDataSource<TodoItemNode, TodoItemFlatNode>;
 
   checklistSelection = new SelectionModel<TodoItemFlatNode>(true);
+  readonly LOCAL_STORAGE_KEY = 'video-history';
 
   constructor(private database: ChecklistDatabase) {
     this.treeFlattener = new MatTreeFlattener(this.transformer, this.getLevel,
@@ -129,7 +137,7 @@ export class TreeTable {
     this.dataSource = new MatTreeFlatDataSource(this.treeControl, this.treeFlattener);
 
     this.dataSource.data = database.data;
-    
+
   }
 
   getLevel = (node: TodoItemFlatNode) => { return node.level; };
@@ -154,26 +162,146 @@ export class TreeTable {
     return flatNode;
   }
 
- 
+  /// retorna true se todos os filhos de um nó estão selecionados. Ex: Documentos -> Resume.docx, CoverLetter.docx, Projects
   descendantsAllSelected(node: TodoItemFlatNode): boolean {
     const descendants = this.treeControl.getDescendants(node);
     return descendants.every(child => this.checklistSelection.isSelected(child));
   }
 
- 
-  descendantsPartiallySelected(node: TodoItemFlatNode): boolean {
-    const descendants = this.treeControl.getDescendants(node);
-    const result = descendants.some(child => this.checklistSelection.isSelected(child));
-    return result && !this.descendantsAllSelected(node);
-  }
+  /// retorna true se algum filho de um nó está selecionado, mas não todos. Ex: Documentos -> Resume.docx, CoverLetter.docx, Projects
+  // descendantsPartiallySelected(node: TodoItemFlatNode): boolean {
+  //   const descendants = this.treeControl.getDescendants(node);
+  //   const result = descendants.some(child => this.checklistSelection.isSelected(child));
+  //   return result && !this.descendantsAllSelected(node);
+  // }
 
- 
-  todoItemSelectionToggle(node: TodoItemFlatNode): void {
+
+  /// Seleciona todos filhos de um nó. Ex: Documentos -> Resume.docx, CoverLetter.docx, Projects
+  todoItemSelectionToggleByNodeWithChild(node: TodoItemFlatNode): void {
     this.checklistSelection.toggle(node);
     const descendants = this.treeControl.getDescendants(node);
-    this.checklistSelection.isSelected(node)
-      ? this.checklistSelection.select(...descendants)
-      : this.checklistSelection.deselect(...descendants);
+    const nodeIsSelected = this.checklistSelection.isSelected(node)
+
+    if (nodeIsSelected) {
+      this.checklistSelection.select(...descendants)
+      this.updateWatchedHistoryFromNode(node, descendants)
+    }else{
+      this.checklistSelection.deselect(...descendants);
+      removeHistoryByPathPrefix(node.item);
+    }
+
+  }
+  onLeafNodeChange(node: TodoItemFlatNode) {
+    var teste = this.getFullPath(node);
+     const LOCAL_STORAGE_KEY = 'video-history';
+
+    const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
+    const existingHistory: { [path: string]: VideoProgress } = raw ? JSON.parse(raw) : {};
+
+    existingHistory[teste] = {
+      watched: this.checklistSelection.isSelected(node),
+    }
+
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(existingHistory));
   }
 
+  getFullPath(node: TodoItemFlatNode): string {
+  const path = [node.item];
+  let level = node.level;
+  let index = this.treeControl.dataNodes.indexOf(node) - 1;
+
+  while (index >=  0 && level > 0) {
+    const current = this.treeControl.dataNodes[index];
+    if (current.level < level) {
+      path.unshift(current.item); // adiciona ao início
+      level = current.level;
+    }
+    index--;
+  }
+
+  return path.join('/');
 }
+
+updateWatchedHistoryFromNode(
+  parentNode: TodoItemFlatNode,
+  descendants: TodoItemFlatNode[]
+
+): void {
+  const LOCAL_STORAGE_KEY = 'video-history';
+
+  const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
+  const existingHistory: { [path: string]: VideoProgress } = raw ? JSON.parse(raw) : {};
+
+  // Limpa lastWatched
+  for (const key in existingHistory) {
+    delete existingHistory[key].lastWatched;
+  }
+
+  const newHistory: { [path: string]: VideoProgress } = {};
+  let lastWatchedPathKey = '';
+
+  // Inclui o próprio pai
+  const parentPath = this.getFullPath(parentNode);
+  newHistory[parentPath] = { watched: true };
+
+  for (const node of descendants) {
+    const path = this.getFullPath(node);
+    newHistory[path] = { watched: true };
+
+    if (!node.expandable) {
+      lastWatchedPathKey = path;
+    }
+  }
+
+  if (lastWatchedPathKey) {
+    newHistory[lastWatchedPathKey].lastWatched = true;
+  }
+
+  // Mescla
+  const merged = {
+    ...existingHistory,
+    ...newHistory,
+  };
+
+  localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(merged));
+}
+
+
+
+
+}
+
+
+function removeHistoryByPathPrefix(pathPrefix: string): void {
+  const LOCAL_STORAGE_KEY = 'video-history';
+  const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
+  if (!raw) return;
+
+  const history: { [path: string]: VideoProgress } = JSON.parse(raw);
+
+  // Remove todos os registros cujo caminho começa com o prefixo
+  for (const key of Object.keys(history)) {
+    if (key === pathPrefix || key.startsWith(pathPrefix + '/')) {
+      delete history[key];
+    }
+  }
+
+  localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(history));
+}
+
+
+
+// {
+//   "Videos/CursoReact/Aula1.mp4": {
+//     "watched": true,
+//     "completedAt": "2025-06-11T12:45:00Z"
+//   },
+//   "Videos/CursoReact/Aula2.mp4": {
+//     "watched": true
+//   },
+//   "Videos/CursoReact/Aula3.mp4": {
+//     "watched": false,
+//     "lastWatched": true,
+//     "currentTime": 134
+//   }
+// }
