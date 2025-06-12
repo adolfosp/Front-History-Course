@@ -1,4 +1,4 @@
-import {Component, Injectable} from '@angular/core';
+import {Component} from '@angular/core';
 import {SelectionModel} from '@angular/cdk/collections';
 import {FlatTreeControl} from '@angular/cdk/tree';
 import {MatTreeFlattener, MatTreeFlatDataSource, MatTreeModule} from '@angular/material/tree';
@@ -8,98 +8,11 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCheckboxModule } from '@angular/material/checkbox';
-
-export class TodoItemNode {
-  children!: TodoItemNode[];
-  item!: string;
-}
-
-export class TodoItemFlatNode {
-  item!: string;
-  level!: number;
-  expandable!: boolean;
-}
-
-interface VideoProgress {
-  watched: boolean;
-  lastWatched?: boolean;
-}
-type VideoHistory = { [path: string]: VideoProgress };
-
-const TREE_DATA = {
-  'Documents': {
-    'Resume.docx': null,
-    'CoverLetter.docx': null,
-    'Projects': {
-      'ProjectA': {
-        'README.md': null,
-        'main.ts': null,
-        'utils.ts': null
-      },
-      'ProjectB': {
-        'index.html': null,
-        'styles.css': null,
-        'app.js': null
-      }
-    }
-  },
-  'Pictures': {
-    'Vacation': {
-      'beach.png': null,
-      'mountains.jpg': null
-    },
-    'Family': {
-      'birthday.jpg': null,
-      'wedding.png': null
-    }
-  },
-  'Music': {
-    'Rock': {
-      'song1.mp3': null,
-      'song2.mp3': null
-    },
-    'Jazz': {
-      'jazz1.mp3': null
-    }
-  }
-};
-
-
-
-@Injectable()
-export class ChecklistDatabase {
-  _data: TodoItemNode[] = [];
-
-  get data(): TodoItemNode[] { return this._data; }
-
-  constructor() {
-    this.initialize();
-  }
-
-  initialize() {
-    this._data = this.buildFileTree(TREE_DATA, 0);
-  }
-
-
-  buildFileTree(value: any, level: number) {
-    let data: any[] = [];
-    for (let k in value) {
-      let v = value[k];
-      let node = new TodoItemNode();
-      node.item = `${k}`;
-      if (v === null || v === undefined) {
-      } else if (typeof v === 'object') {
-        node.children = this.buildFileTree(v, level + 1);
-      } else {
-        node.item = v;
-      }
-      data.push(node);
-    }
-    return data;
-  }
-
-}
-
+import { TodoItemNode } from '../domain/TodoItemNode';
+import { TodoItemFlatNode } from '../domain/TodoItemFlatNode';
+import { IVideoProgress } from '../domain/interfaces/IVideoProgress';
+import { Database } from '../services/database';
+import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-tree-table',
@@ -111,11 +24,14 @@ export class ChecklistDatabase {
     MatFormFieldModule,
     MatInputModule,
     MatIconModule,
-    MatCheckboxModule
+    MatCheckboxModule,
+    FormsModule
   ],
-  providers: [ChecklistDatabase]
+  providers: [Database]
 })
 export class TreeTable {
+  caminho: string = '';
+
 
   flatNodeMap: Map<TodoItemFlatNode, TodoItemNode> = new Map<TodoItemFlatNode, TodoItemNode>();
 
@@ -130,7 +46,7 @@ export class TreeTable {
   checklistSelection = new SelectionModel<TodoItemFlatNode>(true);
   readonly LOCAL_STORAGE_KEY = 'video-history';
 
-  constructor(private database: ChecklistDatabase) {
+  constructor(private database: Database) {
     this.treeFlattener = new MatTreeFlattener(this.transformer, this.getLevel,
       this.isExpandable, this.getChildren);
     this.treeControl = new FlatTreeControl<TodoItemFlatNode>(this.getLevel, this.isExpandable);
@@ -169,11 +85,11 @@ export class TreeTable {
   }
 
   /// retorna true se algum filho de um nó está selecionado, mas não todos. Ex: Documentos -> Resume.docx, CoverLetter.docx, Projects
-  // descendantsPartiallySelected(node: TodoItemFlatNode): boolean {
-  //   const descendants = this.treeControl.getDescendants(node);
-  //   const result = descendants.some(child => this.checklistSelection.isSelected(child));
-  //   return result && !this.descendantsAllSelected(node);
-  // }
+  descendantsPartiallySelected(node: TodoItemFlatNode): boolean {
+    const descendants = this.treeControl.getDescendants(node);
+    const result = descendants.some(child => this.checklistSelection.isSelected(child));
+    return result && !this.descendantsAllSelected(node);
+  }
 
 
   /// Seleciona todos filhos de um nó. Ex: Documentos -> Resume.docx, CoverLetter.docx, Projects
@@ -187,22 +103,47 @@ export class TreeTable {
       this.updateWatchedHistoryFromNode(node, descendants)
     }else{
       this.checklistSelection.deselect(...descendants);
-      removeHistoryByPathPrefix(node.item);
+      removeHistoryByPathPrefix(this.getFullPath(node));
     }
 
   }
   onLeafNodeChange(node: TodoItemFlatNode) {
+
+    if (this.checklistSelection.isSelected(node)) {
+      this.checklistSelection.deselect(node);
+    }else{
+      this.checklistSelection.select(node);
+    }
+
     var teste = this.getFullPath(node);
      const LOCAL_STORAGE_KEY = 'video-history';
 
     const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
-    const existingHistory: { [path: string]: VideoProgress } = raw ? JSON.parse(raw) : {};
+    const existingHistory: { [path: string]: IVideoProgress } = raw ? JSON.parse(raw) : {};
 
-    existingHistory[teste] = {
-      watched: this.checklistSelection.isSelected(node),
+    if(this.checklistSelection.isSelected(node)){
+      existingHistory[teste] = {
+        watched: true,
+      }
+    }else{
+      if (existingHistory[teste]) {
+        delete existingHistory[teste];
+      }
     }
 
+
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(existingHistory));
+  }
+
+  isNodeWithoutChildSelected(node: TodoItemFlatNode): boolean {
+   const LOCAL_STORAGE_KEY = 'video-history';
+
+    const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
+    const existingHistory: { [path: string]: IVideoProgress } = raw ? JSON.parse(raw) : {};
+
+    const fullPath = this.getFullPath(node);
+    const historyEntry = existingHistory[fullPath];
+    return historyEntry && historyEntry.watched === true && !node.expandable;
   }
 
   getFullPath(node: TodoItemFlatNode): string {
@@ -222,6 +163,8 @@ export class TreeTable {
   return path.join('/');
 }
 
+
+
 updateWatchedHistoryFromNode(
   parentNode: TodoItemFlatNode,
   descendants: TodoItemFlatNode[]
@@ -230,14 +173,14 @@ updateWatchedHistoryFromNode(
   const LOCAL_STORAGE_KEY = 'video-history';
 
   const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
-  const existingHistory: { [path: string]: VideoProgress } = raw ? JSON.parse(raw) : {};
+  const existingHistory: { [path: string]: IVideoProgress } = raw ? JSON.parse(raw) : {};
 
   // Limpa lastWatched
   for (const key in existingHistory) {
     delete existingHistory[key].lastWatched;
   }
 
-  const newHistory: { [path: string]: VideoProgress } = {};
+  const newHistory: { [path: string]: IVideoProgress } = {};
   let lastWatchedPathKey = '';
 
   // Inclui o próprio pai
@@ -267,6 +210,16 @@ updateWatchedHistoryFromNode(
 }
 
 
+onFolderSelected(event: Event): void {
+  const input = event.target as HTMLInputElement;
+  if (input.files) {
+    const files = Array.from(input.files);
+    files.forEach(file => {
+      console.log('Arquivo:', file.name);
+      console.log('Caminho relativo:', file.webkitRelativePath);
+    });
+  }
+}
 
 
 }
@@ -277,7 +230,7 @@ function removeHistoryByPathPrefix(pathPrefix: string): void {
   const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
   if (!raw) return;
 
-  const history: { [path: string]: VideoProgress } = JSON.parse(raw);
+  const history: { [path: string]: IVideoProgress } = JSON.parse(raw);
 
   // Remove todos os registros cujo caminho começa com o prefixo
   for (const key of Object.keys(history)) {
@@ -288,20 +241,3 @@ function removeHistoryByPathPrefix(pathPrefix: string): void {
 
   localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(history));
 }
-
-
-
-// {
-//   "Videos/CursoReact/Aula1.mp4": {
-//     "watched": true,
-//     "completedAt": "2025-06-11T12:45:00Z"
-//   },
-//   "Videos/CursoReact/Aula2.mp4": {
-//     "watched": true
-//   },
-//   "Videos/CursoReact/Aula3.mp4": {
-//     "watched": false,
-//     "lastWatched": true,
-//     "currentTime": 134
-//   }
-// }
