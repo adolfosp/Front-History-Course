@@ -1,8 +1,14 @@
 import express from 'express';
 import fs from 'fs';
 import path from 'path';
+import cors from 'cors';
+import mime from 'mime';
 
 const app = express();
+app.use(cors({
+  origin: 'http://localhost:4200'
+}));
+
 const port = 3000;
 
 const videoExtensions = ['.mp4', '.avi', '.mkv', '.mov', '.wmv', '.flv', '.webm'];
@@ -79,6 +85,47 @@ app.get('/tree', (req, res) => {
   const tree = readDirectoryTree(dir, depth);
   res.json(tree);
 });
+
+app.get('/video', (req, res) => {
+  const videoPath = decodeURIComponent(req.query.path as string);
+
+  if (!fs.existsSync(videoPath)) {
+    return res.status(404).send('Vídeo não encontrado');
+  }
+
+  const stat = fs.statSync(videoPath);
+  const fileSize = stat.size;
+  const range = req.headers.range;
+
+  const contentType = mime.getType(videoPath) || 'video/mp4';
+
+  if (range) {
+    const parts = range.replace(/bytes=/, '').split('-');
+    const start = parseInt(parts[0], 10);
+    const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+
+    const chunkSize = end - start + 1;
+    const file = fs.createReadStream(videoPath, { start, end });
+
+    res.writeHead(206, {
+      'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+      'Accept-Ranges': 'bytes',
+      'Content-Length': chunkSize,
+      'Content-Type': contentType
+    });
+
+    file.pipe(res);
+  } else {
+    res.writeHead(200, {
+      'Content-Length': fileSize,
+      'Content-Type': contentType
+    });
+
+    fs.createReadStream(videoPath).pipe(res);
+  }
+});
+
+
 
 
 app.listen(port, () => {

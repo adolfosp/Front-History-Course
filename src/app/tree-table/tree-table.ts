@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { SelectionModel } from '@angular/cdk/collections';
 import { FlatTreeControl } from '@angular/cdk/tree';
 import {
@@ -16,7 +16,14 @@ import { TodoItemNode } from '../domain/TodoItemNode';
 import { TodoItemFlatNode } from '../domain/TodoItemFlatNode';
 import { IVideoProgress } from '../domain/interfaces/IVideoProgress';
 import { Database } from '../services/database';
-import { FormsModule } from '@angular/forms';
+import {
+  FormBuilder,
+  FormGroup,
+  FormsModule,
+  ReactiveFormsModule,
+  Validators,
+} from '@angular/forms';
+import { MatButtonModule } from '@angular/material/button';
 
 @Component({
   selector: 'app-tree-table',
@@ -30,11 +37,14 @@ import { FormsModule } from '@angular/forms';
     MatIconModule,
     MatCheckboxModule,
     FormsModule,
+    ReactiveFormsModule,
+    MatButtonModule
   ],
   providers: [Database],
 })
 export class TreeTable {
-  caminho: string = '';
+  videoUrl = '';
+  videoFileName = '';
 
   flatNodeMap: Map<TodoItemFlatNode, TodoItemNode> = new Map<
     TodoItemFlatNode,
@@ -53,7 +63,7 @@ export class TreeTable {
   dataSource: MatTreeFlatDataSource<TodoItemNode, TodoItemFlatNode>;
 
   checklistSelection = new SelectionModel<TodoItemFlatNode>(true);
-  readonly LOCAL_STORAGE_KEY = 'video-history';
+  private fb = inject(FormBuilder);
 
   constructor(private database: Database) {
     this.treeFlattener = new MatTreeFlattener(
@@ -70,13 +80,26 @@ export class TreeTable {
       this.treeControl,
       this.treeFlattener
     );
-
-    this.dataSource.data = database.data;
-    setTimeout(() => this.applyWatchedHistory(), 0);
   }
 
+  ngOnInit(): void {
+    this.database.data$.subscribe((data) => {
+      this.dataSource.data = data;
+      this.applyWatchedHistory();
+    });
+  }
+
+  onSubmit() {
+    const caminho = this.form.value.caminho;
+    this.database.initialize(caminho);
+  }
+
+  form: FormGroup = this.fb.group({
+    caminho: ['', [Validators.required]],
+  });
+
   private applyWatchedHistory(): void {
-    const raw = localStorage.getItem(this.LOCAL_STORAGE_KEY);
+    const raw = localStorage.getItem(this.form.value.caminho);
     if (!raw) return;
 
     const history: { [path: string]: IVideoProgress } = JSON.parse(raw);
@@ -113,6 +136,7 @@ export class TreeTable {
         : new TodoItemFlatNode();
     flatNode.item = node.item;
     flatNode.level = level;
+    flatNode.path = node.path;
     flatNode.expandable = !!node.children;
     this.flatNodeMap.set(flatNode, node);
     this.nestedNodeMap.set(node, flatNode);
@@ -122,9 +146,10 @@ export class TreeTable {
   /// retorna true se todos os filhos de um nó estão selecionados. Ex: Documentos -> Resume.docx, CoverLetter.docx, Projects
   descendantsAllSelected(node: TodoItemFlatNode): boolean {
     const descendants = this.treeControl.getDescendants(node);
-    return descendants.every((child) =>
+    let isEverySelected = descendants.every((child) =>
       this.checklistSelection.isSelected(child)
     );
+    return isEverySelected;
   }
 
   /// retorna true se algum filho de um nó está selecionado, mas não todos. Ex: Documentos -> Resume.docx, CoverLetter.docx, Projects
@@ -147,7 +172,10 @@ export class TreeTable {
       this.updateWatchedHistoryFromNode(node, descendants);
     } else {
       this.checklistSelection.deselect(...descendants);
-      removeHistoryByPathPrefix(this.getFullPath(node));
+      removeHistoryByPathPrefix(
+        this.getFullPath(node),
+        this.form.value.caminho
+      );
     }
   }
 
@@ -159,9 +187,8 @@ export class TreeTable {
     }
 
     var teste = this.getFullPath(node);
-    const LOCAL_STORAGE_KEY = 'video-history';
 
-    const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
+    const raw = localStorage.getItem(this.form.value.caminho);
     const existingHistory: { [path: string]: IVideoProgress } = raw
       ? JSON.parse(raw)
       : {};
@@ -175,13 +202,39 @@ export class TreeTable {
         delete existingHistory[teste];
       }
     }
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(existingHistory));
+    localStorage.setItem(
+      this.form.value.caminho,
+      JSON.stringify(existingHistory)
+    );
+    const isVideo = node.item
+      .toLowerCase()
+      .match(/\.(mp4|avi|mkv|mov|wmv|flv|webm)$/);
+
+    if (isVideo) {
+      const path = this.getVideoPathFromTree(node);
+      this.playVideo(node);
+    }
   }
 
-  isNodeWithoutChildSelected(node: TodoItemFlatNode): boolean {
-    const LOCAL_STORAGE_KEY = 'video-history';
+  getVideoPathFromTree(node: TodoItemFlatNode): string {
+    const nested = this.flatNodeMap.get(node);
+    return nested?.path || '';
+  }
 
-    const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
+ playVideo(node: TodoItemFlatNode): void {
+  const path = node.path;
+  const encodedPath = encodeURIComponent(path);
+  this.videoUrl = `http://localhost:3000/video?path=${encodedPath}`;
+  this.videoFileName = node.item;
+}
+fecharVideo() {
+  this.videoUrl = '';
+  this.videoFileName = '';
+}
+
+
+  isNodeWithoutChildSelected(node: TodoItemFlatNode): boolean {
+    const raw = localStorage.getItem(this.form.value.caminho);
     const existingHistory: { [path: string]: IVideoProgress } = raw
       ? JSON.parse(raw)
       : {};
@@ -211,9 +264,7 @@ export class TreeTable {
     parentNode: TodoItemFlatNode,
     descendants: TodoItemFlatNode[]
   ): void {
-    const LOCAL_STORAGE_KEY = 'video-history';
-
-    const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
+    const raw = localStorage.getItem(this.form.value.caminho);
     const existingHistory: { [path: string]: IVideoProgress } = raw
       ? JSON.parse(raw)
       : {};
@@ -249,24 +300,40 @@ export class TreeTable {
       ...newHistory,
     };
 
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(merged));
+    localStorage.setItem(this.form.value.caminho, JSON.stringify(merged));
   }
 
-  onFolderSelected(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    if (input.files) {
-      const files = Array.from(input.files);
-      files.forEach((file) => {
-        console.log('Arquivo:', file.name);
-        console.log('Caminho relativo:', file.webkitRelativePath);
-      });
-    }
-  }
+  isWatched(node: TodoItemFlatNode): boolean {
+  const raw = localStorage.getItem(this.form.value.caminho);
+  if (!raw) return false;
+
+  const history: { [path: string]: IVideoProgress } = JSON.parse(raw);
+  const path = this.getFullPath(node);
+  return history[path]?.watched === true;
 }
 
-function removeHistoryByPathPrefix(pathPrefix: string): void {
-  const LOCAL_STORAGE_KEY = 'video-history';
-  const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
+toggleWatched(node: TodoItemFlatNode): void {
+  const raw = localStorage.getItem(this.form.value.caminho);
+  const history: { [path: string]: IVideoProgress } = raw ? JSON.parse(raw) : {};
+
+  const path = this.getFullPath(node);
+
+  if (history[path]?.watched) {
+    delete history[path];
+  } else {
+    history[path] = { watched: true };
+  }
+
+  localStorage.setItem(this.form.value.caminho, JSON.stringify(history));
+}
+
+}
+
+function removeHistoryByPathPrefix(
+  pathPrefix: string,
+  keyLocalStorage: string
+): void {
+  const raw = localStorage.getItem(keyLocalStorage);
   if (!raw) return;
 
   const history: { [path: string]: IVideoProgress } = JSON.parse(raw);
@@ -278,5 +345,5 @@ function removeHistoryByPathPrefix(pathPrefix: string): void {
     }
   }
 
-  localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(history));
+  localStorage.setItem(keyLocalStorage, JSON.stringify(history));
 }

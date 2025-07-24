@@ -1,79 +1,40 @@
 import { Injectable } from '@angular/core';
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { BehaviorSubject } from 'rxjs';
 import { TodoItemNode } from '../domain/TodoItemNode';
 
-
-const TREE_DATA = {
-  'Documents': {
-    'Resume.docx': null,
-    'CoverLetter.docx': null,
-    'Projects': {
-      'ProjectA': {
-        'README.md': null,
-        'main.ts': null,
-        'utils.ts': null
-      },
-      'ProjectB': {
-        'index.html': null,
-        'styles.css': null,
-        'app.js': null
-      }
-    }
-  },
-  'Pictures': {
-    'Vacation': {
-      'beach.png': null,
-      'mountains.jpg': null
-    },
-    'Family': {
-      'birthday.jpg': null,
-      'wedding.png': null
-    }
-  },
-  'Music': {
-    'Rock': {
-      'song1.mp3': null,
-      'song2.mp3': null
-    },
-    'Jazz': {
-      'jazz1.mp3': null
-    }
-  }
-};
-
-
-@Injectable({
-  providedIn: 'root'
-})
-
+@Injectable({ providedIn: 'root' })
 export class Database {
-  _data: TodoItemNode[] = [];
+  private _dataSubject = new BehaviorSubject<TodoItemNode[]>([]);
+  data$ = this._dataSubject.asObservable();
 
-  get data(): TodoItemNode[] { return this._data; }
+  constructor(private http: HttpClient) {}
 
-  constructor() {
-    this.initialize();
-  }
+  initialize(dirPath: string): void {
+    const params = new HttpParams().set('dir', dirPath).set('depth', '10');
 
-  initialize() {
-    this._data = this.buildFileTree(TREE_DATA, 0);
-  }
-
-
-  buildFileTree(value: any, level: number) {
-    let data: any[] = [];
-    for (let k in value) {
-      let v = value[k];
-      let node = new TodoItemNode();
-      node.item = `${k}`;
-      if (v === null || v === undefined) {
-      } else if (typeof v === 'object') {
-        node.children = this.buildFileTree(v, level + 1);
-      } else {
-        node.item = v;
+    this.http.get<any>('http://localhost:3000/tree', { params }).subscribe({
+      next: (tree) => {
+        const data = this.transformTree(tree);
+        this._dataSubject.next(data);
+      },
+      error: (err) => {
+        console.error('Erro ao buscar diretório:', err);
+        this._dataSubject.next([]);
       }
-      data.push(node);
-    }
-    return data;
+    });
   }
 
+  private transformTree(node: any): TodoItemNode[] {
+    const convert = (n: any): TodoItemNode => {
+      const treeNode = new TodoItemNode();
+      treeNode.item = n.name;
+      treeNode.path = n.path;
+      if (n.children?.length) {
+        treeNode.children = n.children.map(convert);
+      }
+      return treeNode;
+    };
+    return [convert(node)];
+  }
 }

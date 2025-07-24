@@ -1,17 +1,20 @@
 <main>
   <section>
-   <form>
-    <label for="caminho">Caminho da Pasta (Windows):</label>
-    <input
-      type="text"
-      id="caminho"
-      [(ngModel)]="caminho"
-      name="caminho"
-      placeholder="Ex: C:\\Users\\MeuUsuario\\Documentos"
-      required
-    />
-    <button type="submit">Enviar</button>
-</form>
+    <form [formGroup]="form" (ngSubmit)="onSubmit()">
+      <label for="caminho">Caminho da Pasta (Windows):</label>
+      <input
+        type="text"
+        id="caminho"
+        formControlName="caminho"
+        placeholder="Ex: C:\\Users\\MeuUsuario\\Documentos"
+        required
+      />
+      <button type="submit" [disabled]="form.invalid">Enviar</button>
+    </form>
+
+    <div *ngIf="form.invalid && form.touched">
+      <p style="color:red;">Por favor, insira um caminho válido.</p>
+    </div>
 
 
   </section>
@@ -36,12 +39,37 @@
       <mat-tree-node *matTreeNodeDef="let node" matTreeNodeToggle
         matTreeNodePadding>
         <button mat-icon-button disabled></button>
-        <mat-checkbox class="checklist-leaf-node"
-          [checked]="isNodeWithoutChildSelected(node)"
-          (change)="onLeafNodeChange(node)">{{node.item}}</mat-checkbox>
+  <span>{{ node.item }}</span>
+
+<button mat-icon-button color="primary" (click)="playVideo(node)">
+  <mat-icon>play_circle</mat-icon>
+</button>
+
+<button mat-icon-button
+  [color]="isWatched(node) ? 'accent' : undefined"
+  (click)="toggleWatched(node)">
+  <mat-icon>
+    {{ isWatched(node) ? 'check_circle' : 'radio_button_unchecked' }}
+  </mat-icon>
+</button>
+
       </mat-tree-node>
     </mat-tree>
 
   </section>
+
+<div class="video-modal-backdrop" *ngIf="videoUrl">
+  <div class="video-modal">
+    <button class="close-button" (click)="fecharVideo()">✖</button>
+    <h3>{{ videoFileName }}</h3>
+    <video controls autoplay preload="auto">
+      <source [src]="videoUrl" type="video/mp4">
+      Seu navegador não suporta vídeo HTML5.
+    </video>
+  </div>
+</div>
+
+
+
 
 </main>
