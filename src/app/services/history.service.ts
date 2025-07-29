@@ -9,11 +9,13 @@ export class HistoryService {
     descendants,
     path,
     treeControl,
+    value = true,
   }: {
     parentNode: TodoItemFlatNode;
     descendants: TodoItemFlatNode[];
     path: string;
     treeControl: FlatTreeControl<TodoItemFlatNode>;
+    value?: boolean
   }): void {
     const raw = localStorage.getItem(path);
     const existingHistory: { [path: string]: IVideoProgress } = raw
@@ -33,14 +35,14 @@ export class HistoryService {
       node: parentNode,
       treeControl: treeControl,
     });
-    newHistory[parentPath] = { watched: true };
+    newHistory[parentPath] = { watched: value };
 
     for (const node of descendants) {
       const path = PathService.getFullPath({
         node: node,
         treeControl: treeControl,
       });
-      newHistory[path] = { watched: true };
+      newHistory[path] = { watched: value };
 
       if (!node.expandable) {
         lastWatchedPathKey = path;

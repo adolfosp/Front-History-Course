@@ -16,12 +16,20 @@ export class TreeCheckbox {
   readonly node = input<TodoItemFlatNode>();
   readonly treeControl = input<FlatTreeControl<TodoItemFlatNode>>();
   readonly checklistSelection = input<SelectionModel<TodoItemFlatNode>>();
+  readonly isNecessaryShowName = input<boolean>();
+  readonly isLeaf = input<boolean>();
 
   readonly toggleSelection = output<TodoItemFlatNode>();
 
   descendantsAllSelected(): boolean {
     const descendants = this.treeControl()!.getDescendants(this.node()!);
     return descendants.length > 0 && descendants.every(child => this.checklistSelection()!.isSelected(child));
+  }
+
+  nodeIsSelected(): boolean {
+    const node = this.node()!;
+    const isSelected = this.checklistSelection()?.isSelected(node);
+    return isSelected ?? false;
   }
 
   descendantsPartiallySelected(): boolean {

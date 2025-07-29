@@ -32,6 +32,8 @@
           [node]="node"
           [treeControl]="treeControl"
           [checklistSelection]="checklistSelection"
+          [isNecessaryShowName]="true"
+          [isLeaf]="false"
           (toggleSelection)="todoItemSelectionToggleByNodeWithChild($event)">
         </app-tree-checkbox>
 
@@ -47,13 +49,15 @@
           <mat-icon>play_circle</mat-icon>
         </button>
 
-        <button mat-icon-button
-          [color]="isWatched(node) ? 'accent' : undefined"
-          (click)="toggleWatched(node)">
-          <mat-icon>
-            {{ isWatched(node) ? 'check_circle' : 'radio_button_unchecked' }}
-          </mat-icon>
-        </button>
+
+          <app-tree-checkbox
+          [node]="node"
+          [treeControl]="treeControl"
+          [checklistSelection]="checklistSelection"
+          [isNecessaryShowName]="false"
+          [isLeaf]="true"
+          (toggleSelection)="todoItemSelectionToggleLeaf($event)">
+        </app-tree-checkbox>
 
       </mat-tree-node>
     </mat-tree>
