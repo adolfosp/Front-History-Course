@@ -1,0 +1,6 @@
+<mat-checkbox
+  [checked]="descendantsAllSelected()"
+  [indeterminate]="descendantsPartiallySelected()"
+  (change)="onToggle()">
+  {{ node.item }}
+</mat-checkbox>

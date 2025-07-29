@@ -2,9 +2,10 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { BehaviorSubject } from 'rxjs';
 import { TodoItemNode } from '../domain/TodoItemNode';
+import { transformTree } from '../utils/transformer';
 
 @Injectable({ providedIn: 'root' })
-export class Database {
+export class ApiService {
   private _dataSubject = new BehaviorSubject<TodoItemNode[]>([]);
   data$ = this._dataSubject.asObservable();
 
@@ -15,7 +16,7 @@ export class Database {
 
     this.http.get<any>('http://localhost:3000/tree', { params }).subscribe({
       next: (tree) => {
-        const data = this.transformTree(tree);
+        const data = transformTree(tree);
         this._dataSubject.next(data);
       },
       error: (err) => {
@@ -25,16 +26,4 @@ export class Database {
     });
   }
 
-  private transformTree(node: any): TodoItemNode[] {
-    const convert = (n: any): TodoItemNode => {
-      const treeNode = new TodoItemNode();
-      treeNode.item = n.name;
-      treeNode.path = n.path;
-      if (n.children?.length) {
-        treeNode.children = n.children.map(convert);
-      }
-      return treeNode;
-    };
-    return [convert(node)];
-  }
 }

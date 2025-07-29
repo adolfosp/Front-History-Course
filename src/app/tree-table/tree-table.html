@@ -7,15 +7,13 @@
         id="caminho"
         formControlName="caminho"
         placeholder="Ex: C:\\Users\\MeuUsuario\\Documentos"
-        required
-      />
+        required />
       <button type="submit" [disabled]="form.invalid">Enviar</button>
     </form>
 
     <div *ngIf="form.invalid && form.touched">
       <p style="color:red;">Por favor, insira um caminho válido.</p>
     </div>
-
 
   </section>
   <section>
@@ -30,46 +28,47 @@
             {{treeControl.isExpanded(node) ? 'expand_more' : 'chevron_right'}}
           </mat-icon>
         </button>
-        <mat-checkbox [checked]="descendantsAllSelected(node)"
-          [indeterminate]="descendantsPartiallySelected(node)"
-          (change)="todoItemSelectionToggleByNodeWithChild(node)">{{node.item}}</mat-checkbox>
+        <app-tree-checkbox
+          [node]="node"
+          [treeControl]="treeControl"
+          [checklistSelection]="checklistSelection"
+          (toggleSelection)="todoItemSelectionToggleByNodeWithChild($event)">
+        </app-tree-checkbox>
+
       </mat-tree-node>
 
       <!-- No folha sem filhos-->
       <mat-tree-node *matTreeNodeDef="let node" matTreeNodeToggle
         matTreeNodePadding>
         <button mat-icon-button disabled></button>
-  <span>{{ node.item }}</span>
+        <span>{{ node.item }}</span>
 
-<button mat-icon-button color="primary" (click)="playVideo(node)">
-  <mat-icon>play_circle</mat-icon>
-</button>
+        <button mat-icon-button color="primary" (click)="playVideo(node)">
+          <mat-icon>play_circle</mat-icon>
+        </button>
 
-<button mat-icon-button
-  [color]="isWatched(node) ? 'accent' : undefined"
-  (click)="toggleWatched(node)">
-  <mat-icon>
-    {{ isWatched(node) ? 'check_circle' : 'radio_button_unchecked' }}
-  </mat-icon>
-</button>
+        <button mat-icon-button
+          [color]="isWatched(node) ? 'accent' : undefined"
+          (click)="toggleWatched(node)">
+          <mat-icon>
+            {{ isWatched(node) ? 'check_circle' : 'radio_button_unchecked' }}
+          </mat-icon>
+        </button>
 
       </mat-tree-node>
     </mat-tree>
 
   </section>
 
-<div class="video-modal-backdrop" *ngIf="videoUrl">
-  <div class="video-modal">
-    <button class="close-button" (click)="fecharVideo()">✖</button>
-    <h3>{{ videoFileName }}</h3>
-    <video controls autoplay preload="auto">
-      <source [src]="videoUrl" type="video/mp4">
-      Seu navegador não suporta vídeo HTML5.
-    </video>
+  <div class="video-modal-backdrop" *ngIf="videoUrl">
+    <div class="video-modal">
+      <button class="close-button" (click)="closeVideo()">✖</button>
+      <h3>{{ videoFileName }}</h3>
+      <video controls autoplay preload="auto">
+        <source [src]="videoUrl" type="video/mp4">
+        Seu navegador não suporta vídeo HTML5.
+      </video>
+    </div>
   </div>
-</div>
-
-
-
 
 </main>
