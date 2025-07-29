@@ -2,5 +2,5 @@
   [checked]="descendantsAllSelected()"
   [indeterminate]="descendantsPartiallySelected()"
   (change)="onToggle()">
-  {{ node.item }}
+  {{ node()!.item }}
 </mat-checkbox>

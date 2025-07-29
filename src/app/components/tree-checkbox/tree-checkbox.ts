@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, input, output } from '@angular/core';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { TodoItemFlatNode } from '../../domain/TodoItemFlatNode';
 import { SelectionModel } from '@angular/cdk/collections';
@@ -13,24 +13,24 @@ import { FlatTreeControl } from '@angular/cdk/tree';
   standalone: true,
 })
 export class TreeCheckbox {
-  @Input() node!: TodoItemFlatNode;
-  @Input() treeControl!: FlatTreeControl<TodoItemFlatNode>;
-  @Input() checklistSelection!: SelectionModel<TodoItemFlatNode>;
+  readonly node = input<TodoItemFlatNode>();
+  readonly treeControl = input<FlatTreeControl<TodoItemFlatNode>>();
+  readonly checklistSelection = input<SelectionModel<TodoItemFlatNode>>();
 
-  @Output() toggleSelection = new EventEmitter<TodoItemFlatNode>();
+  readonly toggleSelection = output<TodoItemFlatNode>();
 
   descendantsAllSelected(): boolean {
-    const descendants = this.treeControl.getDescendants(this.node);
-    return descendants.length > 0 && descendants.every(child => this.checklistSelection.isSelected(child));
+    const descendants = this.treeControl()!.getDescendants(this.node()!);
+    return descendants.length > 0 && descendants.every(child => this.checklistSelection()!.isSelected(child));
   }
 
   descendantsPartiallySelected(): boolean {
-    const descendants = this.treeControl.getDescendants(this.node);
-    const someSelected = descendants.some(child => this.checklistSelection.isSelected(child));
+    const descendants = this.treeControl()!.getDescendants(this.node()!);
+    const someSelected = descendants.some(child => this.checklistSelection()!.isSelected(child));
     return someSelected && !this.descendantsAllSelected();
   }
 
   onToggle(): void {
-    this.toggleSelection.emit(this.node);
+    this.toggleSelection.emit(this.node()!);
   }
 }
