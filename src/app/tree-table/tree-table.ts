@@ -95,16 +95,15 @@ export class TreeTable implements OnInit {
   }
 
   onSubmit() {
-    const caminho = this.form.value.caminho;
-    this.database.initialize(caminho);
+    this.database.initialize(this.pathToCourse);
   }
 
-  form: FormGroup = this.fb.group({
+  public form: FormGroup = this.fb.group({
     caminho: ['', [Validators.required]],
   });
 
   private applyWatchedHistory(): void {
-    const raw = localStorage.getItem(this.form.value.caminho);
+    const raw = localStorage.getItem(this.pathToCourse);
     if (!raw) return;
 
     const history: { [path: string]: IVideoProgress } = JSON.parse(raw);
@@ -140,6 +139,10 @@ export class TreeTable implements OnInit {
     return _nodeData.expandable;
   };
 
+  get pathToCourse(): string {
+    return this.form.value.caminho;
+  }
+
   /// Seleciona todos filhos de um nó. Ex: Documentos -> Resume.docx, CoverLetter.docx, Projects
   todoItemSelectionToggleByNodeWithChild(node: TodoItemFlatNode): void {
     this.checklistSelection.toggle(node);
@@ -151,18 +154,17 @@ export class TreeTable implements OnInit {
       HistoryService.updateWatchedHistoryFromNode({
         parentNode: node,
         descendants: descendants,
-        path: this.form.value.caminho,
+        path: this.pathToCourse,
         treeControl: this.treeControl,
       });
     } else {
       this.checklistSelection.deselect(...descendants);
       HistoryService.removeHistoryByPathPrefix(
         PathService.getFullPath({ node: node, treeControl: this.treeControl }),
-        this.form.value.caminho
+        this.pathToCourse
       );
     }
-
-     this.updateParentWatchedStatus(node);
+    this.updateParentWatchedStatus(node);
   }
 
   todoItemSelectionToggleLeaf(node: TodoItemFlatNode): void {
@@ -173,19 +175,18 @@ export class TreeTable implements OnInit {
       HistoryService.updateWatchedHistoryFromNode({
         parentNode: node,
         descendants: [],
-        path: this.form.value.caminho,
+        path: this.pathToCourse,
         treeControl: this.treeControl,
       });
     } else {
       HistoryService.removeHistoryByPathPrefix(
         PathService.getFullPath({ node: node, treeControl: this.treeControl }),
-        this.form.value.caminho
+        this.pathToCourse
       );
     }
 
-   this.updateParentWatchedStatus(node);
+    this.updateParentWatchedStatus(node);
   }
-
 
   public playVideo(node: TodoItemFlatNode): void {
     const path = node.path;
@@ -210,7 +211,7 @@ export class TreeTable implements OnInit {
       HistoryService.updateWatchedHistoryFromNode({
         parentNode: parent,
         descendants: [],
-        path: this.form.value.caminho,
+        path: this.pathToCourse,
         treeControl: this.treeControl,
         value: allSelected,
       });
