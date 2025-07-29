@@ -6,5 +6,5 @@ This project was generated using [Angular CLI](https://github.com/angular/angula
 
 ### BUGs
 
-[] Ao clicar em um vídeos como visto o checkbox principal não altera
-[] Ao carregar, se contiver itens já visto, o elemento pai principal vem desmarcado
+[x] Ao clicar em um vídeos como visto o checkbox principal não altera
+[x] Ao carregar, se contiver itens já visto, o elemento pai principal vem desmarcado
