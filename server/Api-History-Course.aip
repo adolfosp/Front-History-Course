@@ -1,13 +1,14 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <DOCUMENT Type="Advanced Installer" CreateVersion="22.3" version="22.3" Modules="professional" RootPath="." Language="pt_BR" Id="{36C976E9-BB16-4681-9650-D37302C9770C}">
   <COMPONENT cid="caphyon.advinst.msicomp.MsiPropsComponent">
-    <ROW Property="AI_APP_FILE" Value="http://localhost:3000"/>
+    <ROW Property="AI_APP_FILE" Value="http://localhost:4047"/>
     <ROW Property="AI_BITMAP_DISPLAY_MODE" Value="0"/>
     <ROW Property="AI_EXTERNALUIUNINSTALLERNAME" MultiBuildValue="DefaultBuild:aiui"/>
     <ROW Property="AI_FINDEXE_TITLE" Value="Selecione o pacote de instalação para [|ProductName]" ValueLocId="AI.Property.FindExeTitle"/>
     <ROW Property="AI_FrameColor" Value="metroblack" MsiKey="AI_FrameColor"/>
     <ROW Property="AI_NO_BORDER_NORMAL" MultiBuildValue="DefaultBuild:1" MsiKey="AI_NO_BORDER_NORMAL"/>
     <ROW Property="AI_PRODUCTNAME_ARP" Value="[|ProductName]"/>
+    <ROW Property="AI_RUN_AS_ADMIN" Value="1"/>
     <ROW Property="AI_ThemeStyle" Value="default" MsiKey="AI_ThemeStyle"/>
     <ROW Property="AI_ThemeStyleEx" Value="border" MultiBuildValue="DefaultBuild:flat" MsiKey="AI_ThemeStyleEx"/>
     <ROW Property="AI_UNINSTALLER" Value="msiexec.exe"/>
@@ -60,6 +61,7 @@
     <ROW File="package.json" Component_="index.js" FileName="PACKAG~1.JSO|package.json" Version="65535.65535.65535.65535" Attributes="0" SourcePath="package.json" SelfReg="false"/>
     <ROW File="packagelock.json" Component_="index.js" FileName="PACKAG~2.JSO|package-lock.json" Version="65535.65535.65535.65535" Attributes="0" SourcePath="package-lock.json" SelfReg="false"/>
     <ROW File="startApp.cmd" Component_="startApp.cmd" FileName="startApp.cmd" Version="65535.65535.65535.65535" Attributes="0" SourcePath="startApp.cmd" SelfReg="false"/>
+    <ROW File="runsilent.vbs" Component_="index.js" FileName="RUN-SI~1.VBS|run-silent.vbs" Version="65535.65535.65535.65535" Attributes="0" SourcePath="run-silent.vbs" SelfReg="false"/>
   </COMPONENT>
   <COMPONENT cid="caphyon.advinst.msicomp.BootstrOptComponent">
     <ROW BootstrOptKey="GlobalOptions" DownloadFolder="[AppDataFolder][|Manufacturer]\[|ProductName]\prerequisites" Options="2"/>

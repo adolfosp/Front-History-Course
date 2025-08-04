@@ -14,7 +14,7 @@ export class ApiService {
   initialize(dirPath: string): void {
     const params = new HttpParams().set('dir', dirPath).set('depth', '10');
 
-    this.http.get<any>('http://localhost:3000/tree', { params }).subscribe({
+    this.http.get<any>('http://localhost:4047/tree', { params }).subscribe({
       next: (tree) => {
         const data = transformTree(tree);
         this._dataSubject.next(data);

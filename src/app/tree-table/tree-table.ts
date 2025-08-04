@@ -191,7 +191,7 @@ export class TreeTable implements OnInit {
   public playVideo(node: TodoItemFlatNode): void {
     const path = node.path;
     const encodedPath = encodeURIComponent(path);
-    this.videoUrl = `http://localhost:3000/video?path=${encodedPath}`;
+    this.videoUrl = `http://localhost:4047/video?path=${encodedPath}`;
     this.videoFileName = node.item;
   }
 
