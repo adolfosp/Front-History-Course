@@ -6,10 +6,10 @@ import mime from 'mime';
 
 const app = express();
 app.use(cors({
-  origin: 'http://localhost:4200'
+  origin: 'http://localhost:4048'
 }));
 
-const port = 3000;
+const port = 4047;
 
 const videoExtensions = ['.mp4', '.avi', '.mkv', '.mov', '.wmv', '.flv', '.webm'];
 

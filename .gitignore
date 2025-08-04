@@ -42,3 +42,8 @@ testem.log
 Thumbs.db
 
 server/node_modules
+
+# Dist and release directories
+
+**/dist/
+**/release/

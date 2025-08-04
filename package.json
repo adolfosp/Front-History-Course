@@ -1,12 +1,43 @@
 {
   "name": "history-course",
-  "version": "0.0.0",
+  "version": "1.0.0",
+  "main": "electron/main.js",
+  "build": {
+    "appId": "com.fronthistorycourse.app",
+    "productName": "History Course",
+    "files": [
+      "dist/",
+      "server/dist/",
+      "electron/",
+      "package.json"
+    ],
+    "directories": {
+      "output": "release"
+    },
+    "win": {
+      "icon": "build/icon.ico",
+      "target": "nsis"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "History Course"
+    }
+  },
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
-    "build": "ng build",
+    "build": "ng build --configuration production --base-href ./",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "ng test",
+    "start:electron": "concurrently \"ng serve\" \"wait-on http://localhost:4048 && npm run electron\"",
+    "build:server": "tsc -p server/tsconfig.json",
+    "electron": "npm run build:server && electron electron/main.js",
+    "start:prod": "ng build && npm run electron",
+    "dist": "npm run build && npm run build:server && electron-builder --windows"
   },
   "private": true,
   "dependencies": {
@@ -26,12 +57,16 @@
     "@angular/cli": "^20.0.1",
     "@angular/compiler-cli": "^20.0.0",
     "@types/jasmine": "~5.1.0",
+    "concurrently": "^9.2.0",
+    "electron": "^37.2.5",
+    "electron-builder": "^26.0.12",
     "jasmine-core": "~5.7.0",
     "karma": "~6.4.0",
     "karma-chrome-launcher": "~3.2.0",
     "karma-coverage": "~2.2.0",
     "karma-jasmine": "~5.1.0",
     "karma-jasmine-html-reporter": "~2.1.0",
-    "typescript": "~5.8.2"
+    "typescript": "~5.8.2",
+    "wait-on": "^8.0.4"
   }
 }
