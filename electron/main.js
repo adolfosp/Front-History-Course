@@ -16,7 +16,7 @@ function createWindow() {
   win.loadFile(indexPath);
 
   // DevTools opcional:
-  win.webContents.openDevTools();
+  //win.webContents.openDevTools();
 }
 
 app.whenReady().then(() => {

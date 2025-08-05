@@ -50,7 +50,6 @@
     <ROW Component="APPDIR" ComponentId="{CF771277-27C9-4FD4-9FEA-08E42EAAC3AE}" Directory_="APPDIR" Attributes="0"/>
     <ROW Component="ProductInformation" ComponentId="{C12977A3-B6EC-4198-A3E2-30A982202F8C}" Directory_="APPDIR" Attributes="260" KeyPath="Version"/>
     <ROW Component="index.js" ComponentId="{85D12036-6804-4978-BBB0-F56AD36AEA5E}" Directory_="APPDIR" Attributes="0" KeyPath="index.js" Type="0"/>
-    <ROW Component="startApp.cmd" ComponentId="{FABC90D5-59E2-474A-906A-59625ECE3698}" Directory_="APPDIR" Attributes="0" KeyPath="startApp.cmd"/>
   </COMPONENT>
   <COMPONENT cid="caphyon.advinst.msicomp.MsiFeatsComponent">
     <ROW Feature="MainFeature" Title="MainFeature" Description="Description" Display="1" Level="1" Directory_="APPDIR" Attributes="0"/>
@@ -60,8 +59,7 @@
     <ROW File="index.js" Component_="index.js" FileName="index.js" Version="65535.65535.65535.65535" Attributes="0" SourcePath="dist\index.js" SelfReg="false"/>
     <ROW File="package.json" Component_="index.js" FileName="PACKAG~1.JSO|package.json" Version="65535.65535.65535.65535" Attributes="0" SourcePath="package.json" SelfReg="false"/>
     <ROW File="packagelock.json" Component_="index.js" FileName="PACKAG~2.JSO|package-lock.json" Version="65535.65535.65535.65535" Attributes="0" SourcePath="package-lock.json" SelfReg="false"/>
-    <ROW File="startApp.cmd" Component_="startApp.cmd" FileName="startApp.cmd" Version="65535.65535.65535.65535" Attributes="0" SourcePath="startApp.cmd" SelfReg="false"/>
-    <ROW File="runsilent.vbs" Component_="index.js" FileName="RUN-SI~1.VBS|run-silent.vbs" Version="65535.65535.65535.65535" Attributes="0" SourcePath="run-silent.vbs" SelfReg="false"/>
+    <ROW File="script.bat" Component_="index.js" FileName="script.bat" Version="65535.65535.65535.65535" Attributes="0" SourcePath="script.bat" SelfReg="false"/>
   </COMPONENT>
   <COMPONENT cid="caphyon.advinst.msicomp.BootstrOptComponent">
     <ROW BootstrOptKey="GlobalOptions" DownloadFolder="[AppDataFolder][|Manufacturer]\[|ProductName]\prerequisites" Options="2"/>
@@ -216,7 +214,7 @@
     <ROW Action="AI_RunFinishActions" Type="1" Source="aicustact.dll" Target="RunFinishActions" WithoutSeq="true"/>
     <ROW Action="AI_SHOW_LOG" Type="65" Source="aicustact.dll" Target="LaunchLogFile" WithoutSeq="true"/>
     <ROW Action="AI_STORE_LOCATION" Type="51" Source="ARPINSTALLLOCATION" Target="[APPDIR]"/>
-    <ROW Action="LaunchFile" Type="3266" Source="viewer.exe_1" Target="/EnforcedRunAsAdmin /DontWait /HideWindow &quot;[#startApp.cmd]&quot;" Options="1"/>
+    <ROW Action="LaunchFile" Type="3266" Source="viewer.exe_1" Target="/EnforcedRunAsAdmin /DontWait /HideWindow &quot;[#script.bat]&quot;" Options="1"/>
     <ROW Action="SET_APPDIR" Type="307" Source="APPDIR" Target="[ProgramFilesFolder][Manufacturer]\[ProductName]" MultiBuildTarget="DefaultBuild:[ProgramFiles64Folder][Manufacturer]\[ProductName]"/>
     <ROW Action="SET_SHORTCUTDIR" Type="307" Source="SHORTCUTDIR" Target="[ProgramMenuFolder][ProductName]"/>
     <ROW Action="SET_TARGETDIR_TO_APPDIR" Type="51" Source="TARGETDIR" Target="[APPDIR]"/>
@@ -228,7 +226,6 @@
     <ROW Feature_="MainFeature" Component_="index.js"/>
     <ROW Feature_="MainFeature" Component_="AI_ExePath"/>
     <ROW Feature_="MainFeature" Component_="AI_CustomARPName"/>
-    <ROW Feature_="MainFeature" Component_="startApp.cmd"/>
   </COMPONENT>
   <COMPONENT cid="caphyon.advinst.msicomp.MsiIconsComponent">
     <ROW Name="browser.exe" SourcePath="browser.ico" Index="0"/>
