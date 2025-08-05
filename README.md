@@ -46,31 +46,22 @@ This Angular-based project consumes an API that returns a folder structure conta
 
 ### V1
 
-* [ ] Fetch course structure from API
-* [ ] Display folder structure as a tree view with checkboxes
-* [ ] Implement course progress tracking (mark courses as completed)
-* [ ] Ensure the UI is responsive
-* [ ] Implement basic unit tests
-
-### Future Features
-
-* [ ] Add user authentication for progress tracking per user
-* [ ] Add settings for customizing the interface
-* [ ] Implement API pagination for large course structures
+* [x] Fetch course structure from API
+* [x] Display folder structure as a tree view with checkboxes
+* [x] Implement course progress tracking (mark courses as completed)
+* [ ] Save path folders 
 
 ## Patterns and Technologies
 
 ### Technologies:
 
 * **Angular**: Framework for building the front-end application.
-* **RxJS**: For managing asynchronous events and data streams.
 * **HTML/CSS**: For styling and structuring the front-end layout.
 
 ### Design Patterns:
 
 * **Component-based architecture**: The application uses Angular's component system for modularity and reusability.
 * **Service layer**: For API interactions and data management.
-* **Reactive programming**: Utilizing RxJS for state management and handling asynchronous operations.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
