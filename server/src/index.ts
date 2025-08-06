@@ -5,13 +5,25 @@ import cors from 'cors';
 import mime from 'mime';
 
 const app = express();
-app.use(cors({
-  origin: ['http://localhost:4048', "http://localhost:4058", "http://localhost:4200"]
+app.use(
+  cors({
+    origin: [
+      'http://localhost:4048',
+      'http://localhost:4058',
+      'http://localhost:4200',
+    ],
+  })
+);
 
-}));
-
-
-const videoExtensions = ['.mp4', '.avi', '.mkv', '.mov', '.wmv', '.flv', '.webm'];
+const videoExtensions = [
+  '.mp4',
+  '.avi',
+  '.mkv',
+  '.mov',
+  '.wmv',
+  '.flv',
+  '.webm',
+];
 
 type TreeNode = {
   name: string;
@@ -23,6 +35,25 @@ type TreeNode = {
 function isVideoFile(fileName: string): boolean {
   return videoExtensions.includes(path.extname(fileName).toLowerCase());
 }
+
+function naturalSort(a:any , b:any) {
+  // Expressão regular para encontrar números nas strings
+  const alphanumericRegex = /\d+/g;
+
+  // Extrai todos os números das strings, retornando um array vazio se não houver números
+  const aNumbers = a.match(alphanumericRegex) ? a.match(alphanumericRegex).map(Number) : [];
+  const bNumbers = b.match(alphanumericRegex) ? b.match(alphanumericRegex).map(Number) : [];
+
+  // Compara os números em cada string
+  for (let i = 0; i < Math.min(aNumbers.length, bNumbers.length); i++) {
+    if (aNumbers[i] < bNumbers[i]) return -1;
+    if (aNumbers[i] > bNumbers[i]) return 1;
+  }
+
+  // Se os números forem iguais, compara lexicograficamente os outros caracteres
+  return a.localeCompare(b);
+}
+
 
 function readDirectoryTree(
   dirPath: string,
@@ -45,7 +76,7 @@ function readDirectoryTree(
 
   const items = fs.readdirSync(dirPath);
 
-  items.sort();
+  items.sort(naturalSort);
 
   for (const item of items) {
     const fullPath = path.join(dirPath, item);
@@ -113,21 +144,19 @@ app.get('/video', (req, res) => {
       'Content-Range': `bytes ${start}-${end}/${fileSize}`,
       'Accept-Ranges': 'bytes',
       'Content-Length': chunkSize,
-      'Content-Type': contentType
+      'Content-Type': contentType,
     });
 
     file.pipe(res);
   } else {
     res.writeHead(200, {
       'Content-Length': fileSize,
-      'Content-Type': contentType
+      'Content-Type': contentType,
     });
 
     fs.createReadStream(videoPath).pipe(res);
   }
 });
-
-
 
 app.listen(process.env.PORT, () => {
   console.log(`API rodando em http://localhost:${process.env.PORT}`);
