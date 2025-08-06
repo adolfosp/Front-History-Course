@@ -6,10 +6,10 @@ import mime from 'mime';
 
 const app = express();
 app.use(cors({
-  origin: 'http://localhost:4048'
+  origin: ['http://localhost:4048', "http://localhost:4058", "http://localhost:4200"]
+
 }));
 
-const port = 4047;
 
 const videoExtensions = ['.mp4', '.avi', '.mkv', '.mov', '.wmv', '.flv', '.webm'];
 
@@ -44,6 +44,8 @@ function readDirectoryTree(
   }
 
   const items = fs.readdirSync(dirPath);
+
+  items.sort();
 
   for (const item of items) {
     const fullPath = path.join(dirPath, item);
@@ -127,7 +129,6 @@ app.get('/video', (req, res) => {
 
 
 
-
-app.listen(port, () => {
-  console.log(`API rodando em http://localhost:${port}`);
+app.listen(process.env.PORT, () => {
+  console.log(`API rodando em http://localhost:${process.env.PORT}`);
 });

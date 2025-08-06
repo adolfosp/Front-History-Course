@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "start": "npx ts-node src/index.ts"
+    "start:dev": "node --env-file=.env.development -r ts-node/register src/index.ts",
+    "start:prod": "node --env-file=.env.production -r ts-node/register src/index.ts"
   },
   "keywords": [],
   "author": "",
@@ -11,6 +12,7 @@
   "description": "",
   "dependencies": {
     "cors": "^2.8.5",
+    "dotenv": "^17.2.1",
     "express": "^5.1.0",
     "mime": "^4.0.7",
     "pm2": "^6.0.8"
