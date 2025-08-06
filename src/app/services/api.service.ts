@@ -3,6 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { BehaviorSubject } from 'rxjs';
 import { TodoItemNode } from '../domain/TodoItemNode';
 import { transformTree } from '../utils/transformer';
+import { environment } from '../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class ApiService {
@@ -14,7 +15,7 @@ export class ApiService {
   initialize(dirPath: string): void {
     const params = new HttpParams().set('dir', dirPath).set('depth', '10');
 
-    this.http.get<any>('http://localhost:4047/tree', { params }).subscribe({
+    this.http.get<any>(`${environment.apiUrl}/tree`, { params }).subscribe({
       next: (tree) => {
         const data = transformTree(tree);
         this._dataSubject.next(data);

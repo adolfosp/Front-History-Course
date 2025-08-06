@@ -69,3 +69,8 @@ span {
 mat-tree-node button {
   margin-left: 0.5rem;
 }
+
+#tree-section {
+  height: 80vh;
+  overflow: scroll;
+}

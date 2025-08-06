@@ -28,6 +28,7 @@ import { TreeCheckbox } from '../components/tree-checkbox/tree-checkbox';
 import { PathService } from '../services/path.service';
 import { createTransformer } from '../utils/transformer';
 import { HistoryService } from '../services/history.service';
+import { environment } from '../../environments/environment';
 
 @Component({
   selector: 'app-tree-table',
@@ -191,7 +192,7 @@ export class TreeTable implements OnInit {
   public playVideo(node: TodoItemFlatNode): void {
     const path = node.path;
     const encodedPath = encodeURIComponent(path);
-    this.videoUrl = `http://localhost:4047/video?path=${encodedPath}`;
+    this.videoUrl = `${environment.videoPath}?path=${encodedPath}`;
     this.videoFileName = node.item;
   }
 
