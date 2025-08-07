@@ -29,6 +29,8 @@ import { PathService } from '../services/path.service';
 import { createTransformer } from '../utils/transformer';
 import { HistoryService } from '../services/history.service';
 import { environment } from '../../environments/environment';
+import { CardCourse } from "../components/card-course/card-course";
+import { NgToastComponent, NgToastService, TOAST_POSITIONS } from 'ng-angular-popup';
 
 @Component({
   selector: 'app-tree-table',
@@ -45,13 +47,15 @@ import { environment } from '../../environments/environment';
     ReactiveFormsModule,
     MatButtonModule,
     TreeCheckbox,
-  ],
+    CardCourse,
+    NgToastComponent
+],
   providers: [ApiService],
 })
 export class TreeTable implements OnInit {
   videoUrl = '';
   videoFileName = '';
-
+TOAST_POSITIONS = TOAST_POSITIONS
   flatNodeMap: Map<TodoItemFlatNode, TodoItemNode> = new Map<
     TodoItemFlatNode,
     TodoItemNode
@@ -71,7 +75,7 @@ export class TreeTable implements OnInit {
   checklistSelection = new SelectionModel<TodoItemFlatNode>(true);
   private fb = inject(FormBuilder);
 
-  constructor(private database: ApiService, private cdr: ChangeDetectorRef) {
+  constructor(private database: ApiService, private cdr: ChangeDetectorRef, private toast: NgToastService) {
     this.treeFlattener = new MatTreeFlattener(
       createTransformer(this.flatNodeMap, this.nestedNodeMap),
       this.getLevel,
@@ -90,7 +94,11 @@ export class TreeTable implements OnInit {
 
   ngOnInit(): void {
     this.database.data$.subscribe((data) => {
-      this.dataSource.data = data;
+      if(data?.length === 0) {
+        this.toast.danger('Houve um erro ao carregar o curso', 'Error', 3000);
+      }
+      this.dataSource.data = data!;
+
       this.applyWatchedHistory();
     });
   }

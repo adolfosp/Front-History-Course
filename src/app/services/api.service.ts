@@ -7,7 +7,7 @@ import { environment } from '../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class ApiService {
-  private _dataSubject = new BehaviorSubject<TodoItemNode[]>([]);
+  private _dataSubject = new BehaviorSubject<TodoItemNode[] | null>(null);
   data$ = this._dataSubject.asObservable();
 
   constructor(private http: HttpClient) {}

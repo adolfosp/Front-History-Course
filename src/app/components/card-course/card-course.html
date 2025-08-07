@@ -1,0 +1,18 @@
+
+@if (items?.length){
+<section class="cards">
+  @for (item of items; track $index) {
+  <article class="card">
+    <div class="card__header">
+      <h3 class="card__title">{{ item.name }}</h3>
+    </div>
+  </article>
+  }
+
+</section>
+
+}@else {
+<div class="empty">
+  <p>Sem dados no localStorage.</p>
+</div>
+}

@@ -1,29 +1,30 @@
 <main>
-  <section>
-    <form [formGroup]="form" (ngSubmit)="onSubmit()">
-      <label for="caminho">Caminho da Pasta (Windows):</label>
-      <input
-        type="text"
-        id="caminho"
-        formControlName="caminho"
-        placeholder="Ex: C:\\Users\\MeuUsuario\\Documentos"
-        required />
-      <button type="submit" [disabled]="form.invalid">Enviar</button>
+  <app-card-course></app-card-course>
+  <section class="form-section">
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="path-form">
+      <label for="caminho">📂 Caminho da Pasta (Windows):</label>
+      <div class="form-input-group">
+        <input
+          type="text"
+          id="caminho"
+          formControlName="caminho"
+          placeholder="Ex: C:\\Users\\MeuUsuario\\Documentos"
+          required />
+        <button type="submit" [disabled]="form.invalid">Enviar</button>
+      </div>
     </form>
 
-    <div *ngIf="form.invalid && form.touched">
-      <p style="color:red;">Por favor, insira um caminho válido.</p>
-    </div>
-
+    @if (form.invalid == true) {
+      <p class="error-message">Por favor, insira um caminho válido.</p>
+    }
   </section>
-  <section id="tree-section">
+
+  <section id="tree-section" class="tree-section">
     <mat-tree [dataSource]="dataSource" [treeControl]="treeControl">
 
-      <!--Nó com filhos (pastas)-->
-      <mat-tree-node *matTreeNodeDef="let node; when: hasChild"
-        matTreeNodePadding>
-        <button mat-icon-button matTreeNodeToggle
-          [attr.aria-label]="'toggle ' + node.filename">
+      <!-- Nó com filhos (pastas) -->
+      <mat-tree-node *matTreeNodeDef="let node; when: hasChild" matTreeNodePadding>
+        <button mat-icon-button matTreeNodeToggle [attr.aria-label]="'toggle ' + node.filename">
           <mat-icon class="mat-icon-rtl-mirror">
             {{treeControl.isExpanded(node) ? 'expand_more' : 'chevron_right'}}
           </mat-icon>
@@ -36,21 +37,16 @@
           [isLeaf]="false"
           (toggleSelection)="todoItemSelectionToggleByNodeWithChild($event)">
         </app-tree-checkbox>
-
       </mat-tree-node>
 
-      <!-- No folha sem filhos-->
-      <mat-tree-node *matTreeNodeDef="let node" matTreeNodeToggle
-        matTreeNodePadding>
+      <!-- Nó folha (arquivos) -->
+      <mat-tree-node *matTreeNodeDef="let node" matTreeNodeToggle matTreeNodePadding>
         <button mat-icon-button disabled></button>
-        <span>{{ node.item }}</span>
-
+        <span class="file-name">{{ node.item }}</span>
         <button mat-icon-button color="primary" (click)="playVideo(node)">
           <mat-icon>play_circle</mat-icon>
         </button>
-
-
-          <app-tree-checkbox
+        <app-tree-checkbox
           [node]="node"
           [treeControl]="treeControl"
           [checklistSelection]="checklistSelection"
@@ -58,12 +54,11 @@
           [isLeaf]="true"
           (toggleSelection)="todoItemSelectionToggleLeaf($event)">
         </app-tree-checkbox>
-
       </mat-tree-node>
     </mat-tree>
-
   </section>
 
+  <!-- Modal de vídeo -->
   <div class="video-modal-backdrop" *ngIf="videoUrl">
     <div class="video-modal">
       <button class="close-button" (click)="closeVideo()">✖</button>
@@ -75,4 +70,5 @@
     </div>
   </div>
 
+  <ng-toast [position]="TOAST_POSITIONS.TOP_RIGHT" [width]="350"></ng-toast>
 </main>
