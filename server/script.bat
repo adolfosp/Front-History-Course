@@ -8,7 +8,7 @@ IF NOT EXIST node_modules (
 
 REM Inicia o index.js em segundo plano
 echo Iniciando app...
-npx pm2 start index.js --name "my-app"
+npx pm2 start ecosystem.config.js
 
 
 exit
