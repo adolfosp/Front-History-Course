@@ -1,5 +1,5 @@
 <main>
-  <app-card-course></app-card-course>
+  <app-card-course (clickOnCourse)="addValueToInput($event)"></app-card-course>
   <section class="form-section">
     <form [formGroup]="form" (ngSubmit)="onSubmit()" class="path-form">
       <label for="caminho">📂 Caminho da Pasta (Windows):</label>

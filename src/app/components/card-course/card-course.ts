@@ -1,22 +1,24 @@
-import { Component } from '@angular/core';
-type CardCourseType = {
-  path: string;
-  name: string;
-};
+import { Component, output } from '@angular/core';
+import { CardCourseType } from '../../domain/types/CardHouse';
+
 @Component({
   selector: 'app-card-course',
   imports: [],
   templateUrl: './card-course.html',
-  styleUrl: './card-course.css'
+  styleUrl: './card-course.css',
 })
 export class CardCourse {
- items: CardCourseType[] = [];
+  clickOnCourse = output<any>();
+
+  items: CardCourseType[] = [];
 
   ngOnInit(): void {
     this.items = getAllLocalStorage();
   }
 
-
+  emitClick(event: CardCourseType): void {
+    this.clickOnCourse.emit(event);
+  }
 }
 
 function getAllLocalStorage(): CardCourseType[] {
@@ -26,7 +28,10 @@ function getAllLocalStorage(): CardCourseType[] {
     const key = localStorage.key(i);
     if (key !== null) {
       try {
-        const cardCourse = {path: key, name: key.split('\\')[2] } as CardCourseType
+        const cardCourse = {
+          path: key,
+          name: key.split('\\')[2],
+        } as CardCourseType;
         result.push(cardCourse);
       } catch {
         console.error(`Error accessing localStorage key: ${key}`);

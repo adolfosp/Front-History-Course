@@ -31,6 +31,7 @@ import { HistoryService } from '../services/history.service';
 import { environment } from '../../environments/environment';
 import { CardCourse } from "../components/card-course/card-course";
 import { NgToastComponent, NgToastService, TOAST_POSITIONS } from 'ng-angular-popup';
+import { CardCourseType } from '../domain/types/CardHouse';
 
 @Component({
   selector: 'app-tree-table',
@@ -101,6 +102,10 @@ TOAST_POSITIONS = TOAST_POSITIONS
 
       this.applyWatchedHistory();
     });
+  }
+
+  addValueToInput(value: CardCourseType) {
+    this.form.patchValue({ caminho: value.path });
   }
 
   onSubmit() {
