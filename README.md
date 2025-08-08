@@ -1,7 +1,7 @@
 <a id="readme-top"></a> <br />
 
 <div align="center">
-  <a href="https://github.com/your-repo-link">
+  <a href="hhttps://github.com/adolfosp/Front-History-Course">
     <img src="https://github.com/user-attachments/assets/41e3ccf5-9779-4cb1-8519-d74af9732c0c" alt="Logo" width="140" height="140">
   </a>
 
@@ -10,7 +10,7 @@
   <p align="center">
     This application will interact with an API to manage and display a course folder structure, enabling users to track their progress by marking courses as completed. 
     <br />
-    <a href="https://github.com/your-repo-link"><strong>Explore the docs »</strong></a>
+    <a href="https://github.com/adolfosp/Front-History-Course"><strong>Explore the docs »</strong></a>
     <br />
     <br />
   </p>
@@ -101,7 +101,7 @@ This project is under the **APACHE 2** license. For more information, see [LICEN
 
 ## Contact
 
-* **Linkedin**: [your-linkedin-profile](https://www.linkedin.com/in/your-profile/)
-* **Email**: [your-email@example.com](mailto:your-email@example.com)
+* **Linkedin**: [Adolfosp](https://www.linkedin.com/in/adolfosp/)
+* **Email**: [adolfo.poiatti@gmail.com](mailto:adolfo.poiatti@gmail.com)
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
