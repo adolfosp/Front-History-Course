@@ -106,6 +106,7 @@ TOAST_POSITIONS = TOAST_POSITIONS
 
   addValueToInput(value: CardCourseType) {
     this.form.patchValue({ caminho: value.path });
+    this.onSubmit();
   }
 
   onSubmit() {
