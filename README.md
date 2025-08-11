@@ -2,7 +2,7 @@
 
 <div align="center">
   <a href="hhttps://github.com/adolfosp/Front-History-Course">
-    <img src="https://github.com/user-attachments/assets/41e3ccf5-9779-4cb1-8519-d74af9732c0c" alt="Logo" width="140" height="140">
+    <img src="./public/front-history-course.svg" alt="Logo" width="400" height="400">
   </a>
 
   <h3 align="center">Front-End History Course</h3>
