@@ -9,7 +9,8 @@
       "dist/",
       "server/dist/",
       "electron/",
-      "package.json"
+      "package.json",
+      "public/"
     ],
     "directories": {
       "output": "release"

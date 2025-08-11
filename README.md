@@ -1,7 +1,7 @@
 <a id="readme-top"></a> <br />
 
 <div align="center">
-  <a href="hhttps://github.com/adolfosp/Front-History-Course">
+  <a href="https://github.com/adolfosp/Front-History-Course">
     <img src="./public/front-history-course.svg" alt="Logo" width="400" height="400">
   </a>
 
@@ -69,27 +69,41 @@ This Angular-based project consumes an API that returns a folder structure conta
 ## Folder structure
 
 ```bash
-src/
- ├── app/
- │    ├── components/
- │    │    ├── tree-checkbox/
- │    │    ├── tree-table/
- │    ├── domain/
- │    │    ├── interfaces/
- │    │    ├── types/
- │    ├── services/
- │    │    ├── api.service.ts
- │    │    ├── history.service.ts
- │    ├── utils/
- │    │    ├── transformer.ts
- ├── assets/
- ├── rxjs/
- ├── index.ts
- ├── package.json
- └── README.md
-```
+build
+dist
+electron
+public
+server
+src
+└── app
+    ├── components
+    ├── domain
+    ├── rxjs
+    ├── services
+    ├── tree-table
+    ├── utils
+    ├── app.config.ts
+    ├── app.css
+    ├── app.html
+    ├── app.routes.ts
+    ├── app.spec.ts
+    └── app.ts
+└── environments
+index.html
+main.ts
+styles.css
+.editorconfig
+.gitignore
+.prettierrc
+angular.json
+package-lock.json
+package.json
+README.md
+tsconfig.app.json
+tsconfig.json
+tsconfig.spec.json
 
-This structure focuses on separating concerns, with components for UI elements, services for data management, and utilities for helper functions.
+```
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
