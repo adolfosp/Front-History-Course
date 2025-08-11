@@ -1,4 +1,4 @@
-import { Component, output } from '@angular/core';
+import { Component, effect, output, signal } from '@angular/core';
 import { CardCourseType } from '../../domain/types/CardHouse';
 
 @Component({
@@ -10,14 +10,24 @@ import { CardCourseType } from '../../domain/types/CardHouse';
 export class CardCourse {
   clickOnCourse = output<any>();
 
-  items: CardCourseType[] = [];
-
+  items = signal<CardCourseType[]>([]);
+  constructor() {
+    effect(() => {
+      console.log('Items changed:', this.items());
+    } );
+  }
   ngOnInit(): void {
-    this.items = getAllLocalStorage();
+    const localStorageItems = getAllLocalStorage();
+    this.items.set(localStorageItems);
   }
 
   emitClick(event: CardCourseType): void {
     this.clickOnCourse.emit(event);
+  }
+
+  deleteCourse(event: CardCourseType): void {
+    localStorage.removeItem(event.path);
+    this.items.set(getAllLocalStorage());
   }
 }
 

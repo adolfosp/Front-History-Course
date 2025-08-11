@@ -1,9 +1,10 @@
 
 <h2>Cursos em progresso</h2>
-@if (items?.length){
+@if (items()?.length){
 <section class="cards">
-  @for (item of items; track $index) {
+  @for (item of items(); track $index) {
   <article class="card">
+    <button class="close-btn" (click)="deleteCourse(item)">×</button>
     <div class="card__header">
       <h3 (click)="emitClick(item)" class="card__title">{{ item.name }}</h3>
     </div>
