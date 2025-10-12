@@ -29,8 +29,12 @@ import { PathService } from '../services/path.service';
 import { createTransformer } from '../utils/transformer';
 import { HistoryService } from '../services/history.service';
 import { environment } from '../../environments/environment';
-import { CardCourse } from "../components/card-course/card-course";
-import { NgToastComponent, NgToastService, TOAST_POSITIONS } from 'ng-angular-popup';
+import { CardCourse } from '../components/card-course/card-course';
+import {
+  NgToastComponent,
+  NgToastService,
+  TOAST_POSITIONS,
+} from 'ng-angular-popup';
 import { CardCourseType } from '../domain/types/CardHouse';
 
 @Component({
@@ -49,14 +53,14 @@ import { CardCourseType } from '../domain/types/CardHouse';
     MatButtonModule,
     TreeCheckbox,
     CardCourse,
-    NgToastComponent
-],
+    NgToastComponent,
+  ],
   providers: [ApiService],
 })
 export class TreeTable implements OnInit {
   videoUrl = '';
   videoFileName = '';
-TOAST_POSITIONS = TOAST_POSITIONS
+  TOAST_POSITIONS = TOAST_POSITIONS;
   flatNodeMap: Map<TodoItemFlatNode, TodoItemNode> = new Map<
     TodoItemFlatNode,
     TodoItemNode
@@ -76,7 +80,11 @@ TOAST_POSITIONS = TOAST_POSITIONS
   checklistSelection = new SelectionModel<TodoItemFlatNode>(true);
   private fb = inject(FormBuilder);
 
-  constructor(private database: ApiService, private cdr: ChangeDetectorRef, private toast: NgToastService) {
+  constructor(
+    private database: ApiService,
+    private cdr: ChangeDetectorRef,
+    private toast: NgToastService
+  ) {
     this.treeFlattener = new MatTreeFlattener(
       createTransformer(this.flatNodeMap, this.nestedNodeMap),
       this.getLevel,
@@ -95,7 +103,7 @@ TOAST_POSITIONS = TOAST_POSITIONS
 
   ngOnInit(): void {
     this.database.data$.subscribe((data) => {
-      if(data?.length === 0) {
+      if (data?.length === 0) {
         this.toast.danger('Houve um erro ao carregar o curso', 'Error', 3000);
       }
       this.dataSource.data = data!;
@@ -111,6 +119,43 @@ TOAST_POSITIONS = TOAST_POSITIONS
 
   onSubmit() {
     this.database.initialize(this.pathToCourse);
+  }
+
+  onVideoPaused() {
+    console.log('O vídeo foi pausado!');
+  }
+
+  onVideoEnded() {
+    if (!this.videoFileName || !this.pathToCourse) return;
+
+    const node = this.treeControl.dataNodes.find(
+      (n) => n.item === this.videoFileName
+    );
+
+    if (!node) {
+      console.warn(`Nó do vídeo "${this.videoFileName}" não encontrado.`);
+      return;
+    }
+
+    this.checklistSelection.select(node);
+
+    HistoryService.updateWatchedHistoryFromNode({
+      parentNode: node,
+      descendants: [],
+      path: this.pathToCourse,
+      treeControl: this.treeControl,
+      value: true,
+    });
+
+    this.updateParentWatchedStatus(node);
+
+    this.toast.success(
+      `Vídeo "${this.videoFileName}" concluído!`,
+      'Concluído',
+      3000
+    );
+
+    this.closeVideo();
   }
 
   public form: FormGroup = this.fb.group({

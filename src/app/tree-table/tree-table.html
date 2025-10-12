@@ -63,7 +63,7 @@
     <div class="video-modal">
       <button class="close-button" (click)="closeVideo()">✖</button>
       <h3>{{ videoFileName }}</h3>
-      <video controls autoplay preload="auto">
+      <video controls autoplay preload="auto" (ended)="onVideoEnded()" (pause)="onVideoPaused()">
         <source [src]="videoUrl" type="video/mp4">
         Seu navegador não suporta vídeo HTML5.
       </video>
