@@ -79,6 +79,7 @@ export class TreeTable implements OnInit {
 
   checklistSelection = new SelectionModel<TodoItemFlatNode>(true);
   private fb = inject(FormBuilder);
+  pausedTimes: { [key: string]: string } = {};
 
   constructor(
     private database: ApiService,
@@ -103,8 +104,8 @@ export class TreeTable implements OnInit {
 
   ngOnInit(): void {
     this.database.data$.subscribe((data) => {
-      if (data?.length === 0) {
-        this.toast.danger('Houve um erro ao carregar o curso', 'Error', 3000);
+      if (data?.length === 0 || !data) {
+        return;
       }
       this.dataSource.data = data!;
 
@@ -121,8 +122,22 @@ export class TreeTable implements OnInit {
     this.database.initialize(this.pathToCourse);
   }
 
-  onVideoPaused() {
-    console.log('O vídeo foi pausado!');
+  onVideoPaused(event: Event) {
+    if (!this.videoFileName || !this.pathToCourse) return;
+    const videoElement = event.target as HTMLVideoElement;
+
+    const currentTime = videoElement.currentTime;
+
+    HistoryService.updateWatchedHistoryFromNode({
+      parentNode: this.treeControl.dataNodes.find(
+        (n) => n.item === this.videoFileName
+      )!,
+      descendants: [],
+      path: this.pathToCourse,
+      treeControl: this.treeControl,
+      value: false,
+      currentTime: currentTime,
+    });
   }
 
   onVideoEnded() {
@@ -173,6 +188,9 @@ export class TreeTable implements OnInit {
         node: node,
         treeControl: this.treeControl,
       });
+
+      this.pausedTimes[node.item] =
+        history[path]?.currentTime?.toString() || '0';
       if (history[path]?.watched) {
         this.checklistSelection.select(node);
         const descendants = this.treeControl.getDescendants(node);
@@ -180,12 +198,40 @@ export class TreeTable implements OnInit {
         this.checklistSelection.select(...descendants);
       }
     });
+
     this.cdr.detectChanges();
   }
 
   getLevel = (node: TodoItemFlatNode) => {
     return node.level;
   };
+
+  getTimePublished(fileName: string): string {
+    if (!this.pathToCourse) return '';
+
+    const raw = localStorage.getItem(this.pathToCourse);
+    if (!raw) return '';
+
+    const history: { [path: string]: IVideoProgress } = JSON.parse(raw);
+
+    const node = this.treeControl.dataNodes.find((n) => n.item === fileName);
+    if (!node) return '';
+
+    const fullPath = PathService.getFullPath({
+      node,
+      treeControl: this.treeControl,
+    });
+
+    const progress = history[fullPath]?.currentTime ?? 0;
+    if (progress <= 0) return '';
+
+    const minutes = Math.floor(progress / 60);
+    const seconds = Math.floor(progress % 60)
+      .toString()
+      .padStart(2, '0');
+
+    return `${minutes}:${seconds}`;
+  }
 
   isExpandable = (node: TodoItemFlatNode) => {
     return node.expandable;
@@ -253,6 +299,23 @@ export class TreeTable implements OnInit {
     const encodedPath = encodeURIComponent(path);
     this.videoUrl = `${environment.videoPath}?path=${encodedPath}`;
     this.videoFileName = node.item;
+
+    const raw = localStorage.getItem(this.pathToCourse);
+    if (raw) {
+      const history: { [path: string]: IVideoProgress } = JSON.parse(raw);
+      const fullPath = PathService.getFullPath({
+        node,
+        treeControl: this.treeControl,
+      });
+      const progress = history[fullPath]?.currentTime ?? 0;
+
+      setTimeout(() => {
+        const video = document.querySelector('video');
+        if (video && progress > 0) {
+          video.currentTime = progress;
+        }
+      }, 500);
+    }
   }
 
   public closeVideo() {
@@ -274,6 +337,7 @@ export class TreeTable implements OnInit {
         path: this.pathToCourse,
         treeControl: this.treeControl,
         value: allSelected,
+        currentTime: 0,
       });
     }
   }

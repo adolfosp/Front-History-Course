@@ -10,12 +10,14 @@ export class HistoryService {
     path,
     treeControl,
     value = true,
+    currentTime = 0,
   }: {
     parentNode: TodoItemFlatNode;
     descendants: TodoItemFlatNode[];
     path: string;
     treeControl: FlatTreeControl<TodoItemFlatNode>;
     value?: boolean
+    currentTime?: number;
   }): void {
     const raw = localStorage.getItem(path);
     const existingHistory: { [path: string]: IVideoProgress } = raw
@@ -35,14 +37,14 @@ export class HistoryService {
       node: parentNode,
       treeControl: treeControl,
     });
-    newHistory[parentPath] = { watched: value };
+    newHistory[parentPath] = { watched: value, currentTime: currentTime };
 
     for (const node of descendants) {
       const path = PathService.getFullPath({
         node: node,
         treeControl: treeControl,
       });
-      newHistory[path] = { watched: value };
+      newHistory[path] = { watched: value, currentTime: currentTime };
 
       if (!node.expandable) {
         lastWatchedPathKey = path;
@@ -51,6 +53,7 @@ export class HistoryService {
 
     if (lastWatchedPathKey) {
       newHistory[lastWatchedPathKey].lastWatched = true;
+      newHistory[lastWatchedPathKey].currentTime = currentTime;
     }
 
     // Mescla

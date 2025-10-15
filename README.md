@@ -46,13 +46,13 @@ This Angular-based project consumes an API that returns a folder structure conta
 
 ### V1
 
+* [ ] Show popup to confirm do mark all
+* [ ] Save path folders as json
 * [x] Fetch course structure from API
 * [x] Display folder structure as a tree view with checkboxes
 * [x] Implement course progress tracking (mark courses as completed)
-* [ ] Save path folders as json
-* [ ] Show popup to confirm do mark all
 * [x] Mark the video as completed automatically when the user watches it in full
-* [ ] Add the time that the video stopped 
+* [x] Add the time that the video stopped 
 
 ## Patterns and Technologies
 

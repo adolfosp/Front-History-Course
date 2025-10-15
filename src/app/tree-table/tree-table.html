@@ -9,22 +9,29 @@
           id="caminho"
           formControlName="caminho"
           placeholder="Ex: C:\\Users\\MeuUsuario\\Documentos"
-          required />
+          required
+        />
         <button type="submit" [disabled]="form.invalid">Enviar</button>
       </div>
     </form>
 
     @if (form.invalid == true) {
-      <p class="error-message">Por favor, insira um caminho válido.</p>
+    <p class="error-message">Por favor, insira um caminho válido.</p>
     }
   </section>
 
   <section id="tree-section" class="tree-section">
     <mat-tree [dataSource]="dataSource" [treeControl]="treeControl">
-
       <!-- Nó com filhos (pastas) -->
-      <mat-tree-node *matTreeNodeDef="let node; when: hasChild" matTreeNodePadding>
-        <button mat-icon-button matTreeNodeToggle [attr.aria-label]="'toggle ' + node.filename">
+      <mat-tree-node
+        *matTreeNodeDef="let node; when: hasChild"
+        matTreeNodePadding
+      >
+        <button
+          mat-icon-button
+          matTreeNodeToggle
+          [attr.aria-label]="'toggle ' + node.filename"
+        >
           <mat-icon class="mat-icon-rtl-mirror">
             {{treeControl.isExpanded(node) ? 'expand_more' : 'chevron_right'}}
           </mat-icon>
@@ -35,24 +42,33 @@
           [checklistSelection]="checklistSelection"
           [isNecessaryShowName]="true"
           [isLeaf]="false"
-          (toggleSelection)="todoItemSelectionToggleByNodeWithChild($event)">
+          (toggleSelection)="todoItemSelectionToggleByNodeWithChild($event)"
+        >
         </app-tree-checkbox>
       </mat-tree-node>
 
       <!-- Nó folha (arquivos) -->
-      <mat-tree-node *matTreeNodeDef="let node" matTreeNodeToggle matTreeNodePadding>
+      <mat-tree-node
+        *matTreeNodeDef="let node"
+        matTreeNodeToggle
+        matTreeNodePadding
+      >
         <button mat-icon-button disabled></button>
         <span class="file-name">{{ node.item }}</span>
         <button mat-icon-button color="primary" (click)="playVideo(node)">
           <mat-icon>play_circle</mat-icon>
         </button>
+        @let value = getTimePublished(node.item); @if (value && value != '0') {
+        <span span class="paused-time"> Vídeo pausado em {{ value }}</span>
+        }
         <app-tree-checkbox
           [node]="node"
           [treeControl]="treeControl"
           [checklistSelection]="checklistSelection"
           [isNecessaryShowName]="false"
           [isLeaf]="true"
-          (toggleSelection)="todoItemSelectionToggleLeaf($event)">
+          (toggleSelection)="todoItemSelectionToggleLeaf($event)"
+        >
         </app-tree-checkbox>
       </mat-tree-node>
     </mat-tree>
@@ -63,8 +79,14 @@
     <div class="video-modal">
       <button class="close-button" (click)="closeVideo()">✖</button>
       <h3>{{ videoFileName }}</h3>
-      <video controls autoplay preload="auto" (ended)="onVideoEnded()" (pause)="onVideoPaused()">
-        <source [src]="videoUrl" type="video/mp4">
+      <video
+        controls
+        autoplay
+        preload="auto"
+        (ended)="onVideoEnded()"
+        (pause)="onVideoPaused($event)"
+      >
+        <source [src]="videoUrl" type="video/mp4" />
         Seu navegador não suporta vídeo HTML5.
       </video>
     </div>
