@@ -48,6 +48,7 @@ This Angular-based project consumes an API that returns a folder structure conta
 
 * [ ] Show popup to confirm do mark all
 * [ ] Save path folders as json
+* [ ] Add semantic release
 * [x] Fetch course structure from API
 * [x] Display folder structure as a tree view with checkboxes
 * [x] Implement course progress tracking (mark courses as completed)
@@ -105,6 +106,14 @@ tsconfig.app.json
 tsconfig.json
 tsconfig.spec.json
 
+```
+
+## Comandos
+
+- Para gerar a versão do exe, rode o comando abaixo:
+
+```bash
+npm run dist
 ```
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
