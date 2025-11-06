@@ -45,7 +45,7 @@ This Angular-based project consumes an API that returns a folder structure conta
 ## Planning of versions
 
 ### V1
-
+* [ ] Be possible to mark just by clicking the checkbox
 * [ ] Show popup to confirm do mark all
 * [ ] Save path folders as json
 * [ ] Add semantic release
