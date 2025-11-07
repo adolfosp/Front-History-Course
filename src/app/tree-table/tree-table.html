@@ -59,7 +59,7 @@
           <mat-icon>play_circle</mat-icon>
         </button>
         @let value = getTimePublished(node.item); @if (value && value != '0') {
-        <span span class="paused-time"> Vídeo pausado em {{ value }}</span>
+        <span span class="paused-time"> Vídeo pausado em <span id="time-paused">{{ value }}</span></span>
         }
         <app-tree-checkbox
           [node]="node"
