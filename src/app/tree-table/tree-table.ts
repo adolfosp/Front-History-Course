@@ -6,7 +6,7 @@ import {
   MatTreeFlatDataSource,
   MatTreeModule,
 } from '@angular/material/tree';
-import { of as ofObservable, Observable } from 'rxjs';
+import { of as ofObservable, Observable, from } from 'rxjs';
 import { CommonModule } from '@angular/common';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -171,7 +171,7 @@ export class TreeTable implements OnInit {
       3000
     );
 
-    this.closeVideo();
+    this.closeVideo(true);
   }
 
   public form: FormGroup = this.fb.group({
@@ -322,8 +322,10 @@ export class TreeTable implements OnInit {
     }
   }
 
-  public closeVideo() {
-    this.onVideoPaused({ target: this.videoPlayer.nativeElement } as unknown as Event);
+  public closeVideo(fromEndedVideo: boolean = false): void {
+    if(!fromEndedVideo)
+      this.onVideoPaused({ target: this.videoPlayer.nativeElement } as unknown as Event);
+
     this.videoUrl = '';
     this.videoFileName = '';
 
