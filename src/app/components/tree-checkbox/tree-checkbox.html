@@ -1,6 +1,6 @@
 <mat-checkbox
   [checked]="isLeaf() ? nodeIsSelected(): descendantsAllSelected()"
   [indeterminate]="descendantsPartiallySelected()"
-  (change)="onToggle()">
+  (change)="onCheckboxChange($event)">
   {{ isNecessaryShowName() ? node()!.item : "" }}
 </mat-checkbox>

@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, inject, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, ElementRef, inject, OnInit, ViewChild } from '@angular/core';
 import { SelectionModel } from '@angular/cdk/collections';
 import { FlatTreeControl } from '@angular/cdk/tree';
 import {
@@ -76,6 +76,7 @@ export class TreeTable implements OnInit {
   treeFlattener: MatTreeFlattener<TodoItemNode, TodoItemFlatNode>;
 
   dataSource: MatTreeFlatDataSource<TodoItemNode, TodoItemFlatNode>;
+  @ViewChild('videoPlayer') videoPlayer!: ElementRef<HTMLVideoElement>;
 
   checklistSelection = new SelectionModel<TodoItemFlatNode>(true);
   private fb = inject(FormBuilder);
@@ -84,7 +85,7 @@ export class TreeTable implements OnInit {
   constructor(
     private database: ApiService,
     private cdr: ChangeDetectorRef,
-    private toast: NgToastService
+    private toast: NgToastService,
   ) {
     this.treeFlattener = new MatTreeFlattener(
       createTransformer(this.flatNodeMap, this.nestedNodeMap),
@@ -250,7 +251,8 @@ export class TreeTable implements OnInit {
   }
 
   /// Seleciona todos filhos de um nó. Ex: Documentos -> Resume.docx, CoverLetter.docx, Projects
-  todoItemSelectionToggleByNodeWithChild(node: TodoItemFlatNode): void {
+   todoItemSelectionToggleByNodeWithChild(node: TodoItemFlatNode): void {
+
     this.checklistSelection.toggle(node);
     const descendants = this.treeControl.getDescendants(node);
     const nodeIsSelected = this.checklistSelection.isSelected(node);
@@ -271,6 +273,8 @@ export class TreeTable implements OnInit {
       );
     }
     this.updateParentWatchedStatus(node);
+
+
   }
 
   todoItemSelectionToggleLeaf(node: TodoItemFlatNode): void {
@@ -319,8 +323,10 @@ export class TreeTable implements OnInit {
   }
 
   public closeVideo() {
+    this.onVideoPaused({ target: this.videoPlayer.nativeElement } as unknown as Event);
     this.videoUrl = '';
     this.videoFileName = '';
+
   }
 
   private updateParentWatchedStatus(node: TodoItemFlatNode) {

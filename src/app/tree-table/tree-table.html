@@ -80,6 +80,7 @@
       <button class="close-button" (click)="closeVideo()">✖</button>
       <h3>{{ videoFileName }}</h3>
       <video
+        #videoPlayer
         controls
         autoplay
         preload="auto"

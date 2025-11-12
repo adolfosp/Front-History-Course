@@ -38,7 +38,24 @@ export class TreeCheckbox {
     return someSelected && !this.descendantsAllSelected();
   }
 
-  onToggle(): void {
+  #onToggle(): void {
     this.toggleSelection.emit(this.node()!);
+  }
+
+  onCheckboxChange(event: any) {
+    if (this.isLeaf()) {
+      this.#onToggle();
+      return;
+    }
+
+    const confirmed = confirm(
+      `Atenção! Deseja realmente selecionar/desmarcar todos os itens dentro de "${this.node()?.item}"?`
+    );
+
+    if (confirmed) {
+      this.#onToggle();
+    } else {
+      event.source.checked = !event.source.checked;
+    }
   }
 }

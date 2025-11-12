@@ -46,9 +46,10 @@ This Angular-based project consumes an API that returns a folder structure conta
 
 ### V1
 * [ ] Be possible to mark just by clicking the checkbox
-* [ ] Show popup to confirm do mark all
 * [ ] Save path folders as json
-* [ ] Add semantic release
+* [ ] Add semantic 
+* [x] Show popup to confirm do mark all
+* [x] When click on close, save the progress
 * [x] Fetch course structure from API
 * [x] Display folder structure as a tree view with checkboxes
 * [x] Implement course progress tracking (mark courses as completed)
@@ -115,6 +116,8 @@ tsconfig.spec.json
 ```bash
 npm run dist
 ```
+
+- O arquivo gerado estará na pasta `/release`
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
