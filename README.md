@@ -45,7 +45,6 @@ This Angular-based project consumes an API that returns a folder structure conta
 ## Planning of versions
 
 ### V1
-* [ ] Be possible to mark just by clicking the checkbox
 * [ ] Save path folders as json
 * [ ] Add semantic 
 * [x] Show popup to confirm do mark all
@@ -55,6 +54,11 @@ This Angular-based project consumes an API that returns a folder structure conta
 * [x] Implement course progress tracking (mark courses as completed)
 * [x] Mark the video as completed automatically when the user watches it in full
 * [x] Add the time that the video stopped 
+
+### V2
+* [ ] Show how many times the video has
+* [ ] Add option to reset the progress of video
+
 
 ## Patterns and Technologies
 
