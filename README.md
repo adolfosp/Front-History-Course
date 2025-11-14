@@ -59,6 +59,7 @@ This Angular-based project consumes an API that returns a folder structure conta
 * [ ] Show how many times the video has
 * [ ] Add option to reset the progress of video
 * [ ] Light-Dark Theme
+* [ ] Automaticaly reproduction
 
 ## Patterns and Technologies
 
