@@ -61,6 +61,7 @@ This Angular-based project consumes an API that returns a folder structure conta
 * [ ] Light-Dark Theme
 * [ ] Automaticaly reproduction
 * [ ] Add the date that finished watching the video
+* [ ] Add option to load image as banner automatically
 
 ## Patterns and Technologies
 
