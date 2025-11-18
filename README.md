@@ -62,6 +62,7 @@ This Angular-based project consumes an API that returns a folder structure conta
 * [ ] Automaticaly reproduction
 * [ ] Add the date that finished watching the video
 * [ ] Add option to load image as banner automatically
+* [ ] Show the progress in percentage
 
 ## Patterns and Technologies
 
