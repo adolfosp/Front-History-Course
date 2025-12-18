@@ -45,8 +45,10 @@ This Angular-based project consumes an API that returns a folder structure conta
 ## Planning of versions
 
 ### V1
+* [ ] Add .ts format
 * [ ] Save path folders as json
-* [ ] Add semantic 
+* [ ] Add semantic
+* [ ] Change the color of progress bar in the video tag - https://css-tricks.com/some-innocent-fun-with-html-video-and-progress/
 * [x] Show popup to confirm do mark all
 * [x] When click on close, save the progress
 * [x] Fetch course structure from API
