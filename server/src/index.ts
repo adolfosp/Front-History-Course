@@ -157,6 +157,21 @@ app.get('/video', (req, res) => {
     fs.createReadStream(videoPath).pipe(res);
   }
 });
+app.post('/update-history', express.json(), (req, res) => {
+  const { history, path } = req.body;
+  if (!history || !path) {
+    return res.status(400).json({ error: 'Parâmetros "history" e "path" são obrigatórios' });
+  }
+
+  const historyFilePath = path + '/progress.json';
+  fs.writeFile(historyFilePath, JSON.stringify(history, null, 2), (err) => {
+    if (err) {
+      console.error('Erro ao salvar histórico:', err);
+      return res.status(500).json({ error: 'Erro ao salvar histórico' });
+    }
+    res.json({ message: 'Histórico atualizado com sucesso' });
+  });
+});
 
 app.listen(process.env.PORT, () => {
   console.log(`API rodando em http://localhost:${process.env.PORT}`);

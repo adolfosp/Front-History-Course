@@ -30,7 +30,8 @@
   },
   "scripts": {
     "ng": "ng",
-    "start": "ng serve --configuration development",
+    "start:dev": "ng serve --configuration development",
+    "start-all:dev": "concurrently \"ng serve --configuration development\" \"cd server && npm run start:dev\"",
     "build": "ng build --configuration production --base-href ./",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
@@ -59,7 +60,7 @@
     "@angular/cli": "^20.0.1",
     "@angular/compiler-cli": "^20.0.0",
     "@types/jasmine": "~5.1.0",
-    "concurrently": "^9.2.0",
+    "concurrently": "^9.2.1",
     "electron": "^37.2.5",
     "electron-builder": "^26.0.12",
     "jasmine-core": "~5.7.0",

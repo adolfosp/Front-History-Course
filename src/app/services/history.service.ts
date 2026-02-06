@@ -2,9 +2,12 @@ import { FlatTreeControl } from '@angular/cdk/tree';
 import { IVideoProgress } from '../domain/interfaces/IVideoProgress';
 import { TodoItemFlatNode } from '../domain/TodoItemFlatNode';
 import { PathService } from './path.service';
+import { Injectable } from '@angular/core';
 
+@Injectable({ providedIn: 'root' })
 export class HistoryService {
-  static updateWatchedHistoryFromNode({
+
+   public updateWatchedHistoryFromNode({
     parentNode,
     descendants,
     path,
@@ -18,7 +21,7 @@ export class HistoryService {
     treeControl: FlatTreeControl<TodoItemFlatNode>;
     value?: boolean
     currentTime?: number;
-  }): void {
+  }): string {
     const raw = localStorage.getItem(path);
     const existingHistory: { [path: string]: IVideoProgress } = raw
       ? JSON.parse(raw)
@@ -62,15 +65,18 @@ export class HistoryService {
       ...newHistory,
     };
 
-    localStorage.setItem(path, JSON.stringify(merged));
+    let jsonString = JSON.stringify(merged);
+    localStorage.setItem(path, jsonString);
+
+    return jsonString;
   }
 
-  static removeHistoryByPathPrefix(
+  public removeHistoryByPathPrefix(
     pathPrefix: string,
     keyLocalStorage: string
-  ): void {
+  ): string {
     const raw = localStorage.getItem(keyLocalStorage);
-    if (!raw) return;
+    if (!raw) return "";
 
     const history: { [path: string]: IVideoProgress } = JSON.parse(raw);
 
@@ -81,6 +87,10 @@ export class HistoryService {
       }
     }
 
-    localStorage.setItem(keyLocalStorage, JSON.stringify(history));
+    let jsonString = JSON.stringify(history);
+
+    localStorage.setItem(keyLocalStorage, jsonString);
+
+    return jsonString;
   }
 }

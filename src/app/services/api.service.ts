@@ -27,4 +27,17 @@ export class ApiService {
     });
   }
 
+  updateDataHistoryOnFolder(history: string, path: string): void {
+    this.http.post(`${environment.apiUrl}/update-history`, {
+      history,
+      path
+    }).subscribe({
+      next: () => {
+        console.log('Histórico atualizado com sucesso no servidor.');
+      },
+      error: (err) => {
+        console.error('Erro ao atualizar histórico no servidor:', err);
+      }
+    });
+  }
 }

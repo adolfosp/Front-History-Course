@@ -9,8 +9,7 @@
           id="caminho"
           formControlName="caminho"
           placeholder="Ex: C:\\Users\\MeuUsuario\\Documentos"
-          required
-        />
+          required />
         <button type="submit" [disabled]="form.invalid">Enviar</button>
       </div>
     </form>
@@ -21,17 +20,15 @@
   </section>
 
   <section id="tree-section" class="tree-section">
-    <mat-tree [dataSource]="dataSource" [treeControl]="treeControl">
+    <mat-tree [dataSource]="dataSource" [treeControl]="treeControl" id="mat-tree">
       <!-- Nó com filhos (pastas) -->
       <mat-tree-node
         *matTreeNodeDef="let node; when: hasChild"
-        matTreeNodePadding
-      >
+        matTreeNodePadding>
         <button
           mat-icon-button
           matTreeNodeToggle
-          [attr.aria-label]="'toggle ' + node.filename"
-        >
+          [attr.aria-label]="'toggle ' + node.filename">
           <mat-icon class="mat-icon-rtl-mirror">
             {{treeControl.isExpanded(node) ? 'expand_more' : 'chevron_right'}}
           </mat-icon>
@@ -42,8 +39,7 @@
           [checklistSelection]="checklistSelection"
           [isNecessaryShowName]="true"
           [isLeaf]="false"
-          (toggleSelection)="todoItemSelectionToggleByNodeWithChild($event)"
-        >
+          (toggleSelection)="todoItemSelectionToggleByNodeWithChild($event)">
         </app-tree-checkbox>
       </mat-tree-node>
 
@@ -51,25 +47,30 @@
       <mat-tree-node
         *matTreeNodeDef="let node"
         matTreeNodeToggle
-        matTreeNodePadding
-      >
+        matTreeNodePadding>
+
         <button mat-icon-button disabled></button>
         <span class="file-name">{{ node.item }}</span>
-        <button mat-icon-button color="primary" (click)="playVideo(node)">
-          <mat-icon>play_circle</mat-icon>
-        </button>
-        @let value = getTimePublished(node.item); @if (value && value != '0') {
-        <span span class="paused-time"> Vídeo pausado em <span id="time-paused">{{ value }}</span></span>
-        }
-        <app-tree-checkbox
-          [node]="node"
-          [treeControl]="treeControl"
-          [checklistSelection]="checklistSelection"
-          [isNecessaryShowName]="false"
-          [isLeaf]="true"
-          (toggleSelection)="todoItemSelectionToggleLeaf($event)"
-        >
-        </app-tree-checkbox>
+
+        <div class="control-panel">
+          <button mat-icon-button color="primary" (click)="playVideo(node)">
+            <mat-icon>play_circle</mat-icon>
+          </button>
+          @let value = getTimePublished(node.item); @if (value && value != '0')
+          {
+          <span span class="paused-time"> Vídeo pausado em <span
+              id="time-paused">{{ value }}</span></span>
+          }
+          <app-tree-checkbox
+            [node]="node"
+            [treeControl]="treeControl"
+            [checklistSelection]="checklistSelection"
+            [isNecessaryShowName]="false"
+            [isLeaf]="true"
+            (toggleSelection)="todoItemSelectionToggleLeaf($event)">
+          </app-tree-checkbox>
+        </div>
+
       </mat-tree-node>
     </mat-tree>
   </section>
@@ -85,8 +86,7 @@
         autoplay
         preload="auto"
         (ended)="onVideoEnded()"
-        (pause)="onVideoPaused($event)"
-      >
+        (pause)="onVideoPaused($event)">
         <source [src]="videoUrl" type="video/mp4" />
         Seu navegador não suporta vídeo HTML5.
       </video>

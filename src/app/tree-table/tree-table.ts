@@ -55,7 +55,7 @@ import { CardCourseType } from '../domain/types/CardHouse';
     CardCourse,
     NgToastComponent,
   ],
-  providers: [ApiService],
+  providers: [HistoryService],
 })
 export class TreeTable implements OnInit {
   videoUrl = '';
@@ -83,9 +83,10 @@ export class TreeTable implements OnInit {
   pausedTimes: { [key: string]: string } = {};
 
   constructor(
-    private database: ApiService,
+    private apiService: ApiService,
     private cdr: ChangeDetectorRef,
     private toast: NgToastService,
+    private historyService: HistoryService
   ) {
     this.treeFlattener = new MatTreeFlattener(
       createTransformer(this.flatNodeMap, this.nestedNodeMap),
@@ -104,7 +105,7 @@ export class TreeTable implements OnInit {
   }
 
   ngOnInit(): void {
-    this.database.data$.subscribe((data) => {
+    this.apiService.data$.subscribe((data) => {
       if (data?.length === 0 || !data) {
         return;
       }
@@ -120,7 +121,7 @@ export class TreeTable implements OnInit {
   }
 
   onSubmit() {
-    this.database.initialize(this.pathToCourse);
+    this.apiService.initialize(this.pathToCourse);
   }
 
   onVideoPaused(event: Event) {
@@ -129,7 +130,7 @@ export class TreeTable implements OnInit {
 
     const currentTime = videoElement.currentTime;
 
-    HistoryService.updateWatchedHistoryFromNode({
+    let historyUpdated = this.historyService.updateWatchedHistoryFromNode({
       parentNode: this.treeControl.dataNodes.find(
         (n) => n.item === this.videoFileName
       )!,
@@ -139,6 +140,8 @@ export class TreeTable implements OnInit {
       value: false,
       currentTime: currentTime,
     });
+
+    this.apiService.updateDataHistoryOnFolder(historyUpdated, this.pathToCourse);
   }
 
   onVideoEnded() {
@@ -155,13 +158,15 @@ export class TreeTable implements OnInit {
 
     this.checklistSelection.select(node);
 
-    HistoryService.updateWatchedHistoryFromNode({
+    let historyUpdated = this.historyService.updateWatchedHistoryFromNode({
       parentNode: node,
       descendants: [],
       path: this.pathToCourse,
       treeControl: this.treeControl,
       value: true,
     });
+
+    this.apiService.updateDataHistoryOnFolder(historyUpdated, this.pathToCourse);
 
     this.updateParentWatchedStatus(node);
 
@@ -259,18 +264,23 @@ export class TreeTable implements OnInit {
 
     if (nodeIsSelected) {
       this.checklistSelection.select(...descendants);
-      HistoryService.updateWatchedHistoryFromNode({
+      let historyUpdated = this.historyService.updateWatchedHistoryFromNode({
         parentNode: node,
         descendants: descendants,
         path: this.pathToCourse,
         treeControl: this.treeControl,
       });
+
+          this.apiService.updateDataHistoryOnFolder(historyUpdated, this.pathToCourse);
+
     } else {
       this.checklistSelection.deselect(...descendants);
-      HistoryService.removeHistoryByPathPrefix(
+      let historyUpdated = this.historyService.removeHistoryByPathPrefix(
         PathService.getFullPath({ node: node, treeControl: this.treeControl }),
         this.pathToCourse
       );
+
+      this.apiService.updateDataHistoryOnFolder(historyUpdated, this.pathToCourse);
     }
     this.updateParentWatchedStatus(node);
 
@@ -282,17 +292,21 @@ export class TreeTable implements OnInit {
     const nodeIsSelected = this.checklistSelection.isSelected(node);
 
     if (nodeIsSelected) {
-      HistoryService.updateWatchedHistoryFromNode({
+      let historyUpdated = this.historyService.updateWatchedHistoryFromNode({
         parentNode: node,
         descendants: [],
         path: this.pathToCourse,
         treeControl: this.treeControl,
       });
+
+      this.apiService.updateDataHistoryOnFolder(historyUpdated, this.pathToCourse);
+
     } else {
-      HistoryService.removeHistoryByPathPrefix(
+      let historyUpdated = this.historyService.removeHistoryByPathPrefix(
         PathService.getFullPath({ node: node, treeControl: this.treeControl }),
         this.pathToCourse
       );
+      this.apiService.updateDataHistoryOnFolder(historyUpdated, this.pathToCourse);
     }
 
     this.updateParentWatchedStatus(node);
@@ -339,7 +353,7 @@ export class TreeTable implements OnInit {
         this.checklistSelection.isSelected(d)
       );
 
-      HistoryService.updateWatchedHistoryFromNode({
+      let historyUpdated = this.historyService.updateWatchedHistoryFromNode({
         parentNode: parent,
         descendants: [],
         path: this.pathToCourse,
@@ -347,6 +361,9 @@ export class TreeTable implements OnInit {
         value: allSelected,
         currentTime: 0,
       });
+
+      this.apiService.updateDataHistoryOnFolder(historyUpdated, this.pathToCourse);
+
     }
   }
 
