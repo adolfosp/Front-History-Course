@@ -46,8 +46,8 @@ This Angular-based project consumes an API that returns a folder structure conta
 
 ### V1
 * [x] Text getting out of box
-* [ ] Save path folders as json
-* [ ] Add semantic
+* [x] Save path folders as json
+* [x] Add semantic
 * [x] Show popup to confirm do mark all
 * [x] When click on close, save the progress
 * [x] Fetch course structure from API
@@ -57,14 +57,14 @@ This Angular-based project consumes an API that returns a folder structure conta
 * [x] Add the time that the video stopped 
 
 ### V2
-* [ ] Show how many times the video has
-* [ ] Add option to reset the progress of video
-* [ ] Light-Dark Theme
-* [ ] Automaticaly reproduction
-* [ ] Add the date that finished watching the video
-* [ ] Add option to load image as banner automatically
-* [ ] Show the progress in percentage
-* [ ] When watched 95% of the video, mark as completed
+* [x] Show how many times the video has
+* [x] Add option to reset the progress of video
+* [x] Light-Dark Theme
+* [x] Automaticaly reproduction
+* [x] Add the date that finished watching the video
+* [x] Add option to load image as banner automatically
+* [x] Show the progress in percentage
+* [x] When watched 95% of the video, mark as completed
 
 ## Patterns and Technologies
 
