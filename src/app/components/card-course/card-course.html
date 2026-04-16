@@ -1,20 +1,55 @@
-
 <h2>Cursos em progresso</h2>
-@if (items()?.length){
+@if (items().length) {
 <section class="cards">
-  @for (item of items(); track $index) {
-  <article class="card">
-    <button class="close-btn" (click)="deleteCourse(item)">×</button>
-    <div class="card__header">
-      <h3 (click)="emitClick(item)" class="card__title">{{ item.name }}</h3>
+  @for (item of items(); track trackByPath($index, item)) {
+  <article
+    class="card"
+    [style.background-image]="getCardBackground(item)">
+    <div class="card__overlay"></div>
+    <button type="button" class="close-btn" (click)="deleteCourse(item)">×</button>
+
+    <div class="card__content">
+      <div class="card__header">
+        <span class="card__badge">
+          {{ item.bannerImage ? 'Com banner' : 'Sem banner' }}
+        </span>
+      </div>
+
+      <button type="button" (click)="emitClick(item)" class="card__title">
+        {{ item.name }}
+      </button>
+
+      <p class="card__path">{{ item.path }}</p>
+
+      <div class="card__actions">
+        <input
+          #bannerInput
+          type="file"
+          accept="image/*"
+          class="visually-hidden"
+          (change)="uploadBanner($event, item)" />
+        <button
+          type="button"
+          class="action-btn action-btn--primary"
+          (click)="bannerInput.click()">
+          {{ item.bannerImage ? 'Trocar banner' : 'Adicionar banner' }}
+        </button>
+
+        @if (item.bannerImage) {
+        <button
+          type="button"
+          class="action-btn action-btn--ghost"
+          (click)="removeBanner(item)">
+          Remover banner
+        </button>
+        }
+      </div>
     </div>
   </article>
   }
-
 </section>
-
-}@else {
+} @else {
 <div class="empty">
-  <p>Sem dados no localStorage.</p>
+  <p>Carregue um curso para começar a gerenciar os banners.</p>
 </div>
 }

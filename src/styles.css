@@ -1,9 +1,43 @@
 /* You can add global styles to this file, and also import other style files */
 
 html, body { height: 100%; }
-body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
-:root {
-    --mat-tree-container-background-color: #adabab;
-    --mat-sys-surface: #b9b5b5;
-    --bg-background:  #F8F9FA
+body {
+  margin: 0;
+  font-family: Roboto, "Helvetica Neue", sans-serif;
+  background: var(--bg-background);
+  color: var(--text-primary);
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+:root,
+:root[data-theme='light'] {
+  --mat-tree-container-background-color: #e2e8f0;
+  --mat-sys-surface: #ffffff;
+  --bg-background: #f8fafc;
+  --surface-primary: #ffffff;
+  --surface-secondary: #eff6ff;
+  --surface-tertiary: #e2e8f0;
+  --accent: #2563eb;
+  --accent-strong: #1d4ed8;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+  --border-color: #dbe3ef;
+  --panel-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+}
+
+:root[data-theme='dark'] {
+  --mat-tree-container-background-color: #162033;
+  --mat-sys-surface: #111827;
+  --bg-background: #020617;
+  --surface-primary: #0f172a;
+  --surface-secondary: #162033;
+  --surface-tertiary: #1e293b;
+  --accent: #60a5fa;
+  --accent-strong: #93c5fd;
+  --text-primary: #e2e8f0;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+  --border-color: #334155;
+  --panel-shadow: 0 12px 36px rgba(2, 6, 23, 0.45);
 }

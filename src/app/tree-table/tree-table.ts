@@ -1,4 +1,12 @@
-import { ChangeDetectorRef, Component, ElementRef, inject, OnInit, ViewChild } from '@angular/core';
+import {
+  ChangeDetectorRef,
+  Component,
+  ElementRef,
+  OnDestroy,
+  OnInit,
+  ViewChild,
+  inject,
+} from '@angular/core';
 import { SelectionModel } from '@angular/cdk/collections';
 import { FlatTreeControl } from '@angular/cdk/tree';
 import {
@@ -6,7 +14,7 @@ import {
   MatTreeFlatDataSource,
   MatTreeModule,
 } from '@angular/material/tree';
-import { of as ofObservable, Observable, from } from 'rxjs';
+import { Observable, Subscription, of as ofObservable } from 'rxjs';
 import { CommonModule } from '@angular/common';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -14,7 +22,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { TodoItemNode } from '../domain/TodoItemNode';
 import { TodoItemFlatNode } from '../domain/TodoItemFlatNode';
-import { IVideoProgress } from '../domain/interfaces/IVideoProgress';
+import { ICourseProgress } from '../domain/interfaces/ICourseProgress';
 import { ApiService } from '../services/api.service';
 import {
   FormBuilder,
@@ -36,6 +44,11 @@ import {
   TOAST_POSITIONS,
 } from 'ng-angular-popup';
 import { CardCourseType } from '../domain/types/CardHouse';
+import { CourseStorageService } from '../services/course-storage.service';
+import {
+  buildCourseBannerUrl,
+  getCourseNameFromPath,
+} from '../utils/course-progress';
 
 @Component({
   selector: 'app-tree-table',
@@ -57,9 +70,19 @@ import { CardCourseType } from '../domain/types/CardHouse';
   ],
   providers: [HistoryService],
 })
-export class TreeTable implements OnInit {
+export class TreeTable implements OnInit, OnDestroy {
   videoUrl = '';
   videoFileName = '';
+  selectedCourse: CardCourseType | null = null;
+  autoPlayNext = this.readBooleanPreference(
+    'history-course:auto-play-next',
+    true
+  );
+  courseStats = {
+    totalVideos: 0,
+    watchedVideos: 0,
+    percentage: 0,
+  };
   TOAST_POSITIONS = TOAST_POSITIONS;
   flatNodeMap: Map<TodoItemFlatNode, TodoItemNode> = new Map<
     TodoItemFlatNode,
@@ -72,21 +95,25 @@ export class TreeTable implements OnInit {
   >();
 
   treeControl: FlatTreeControl<TodoItemFlatNode>;
-
   treeFlattener: MatTreeFlattener<TodoItemNode, TodoItemFlatNode>;
-
   dataSource: MatTreeFlatDataSource<TodoItemNode, TodoItemFlatNode>;
+
   @ViewChild('videoPlayer') videoPlayer!: ElementRef<HTMLVideoElement>;
 
   checklistSelection = new SelectionModel<TodoItemFlatNode>(true);
   private fb = inject(FormBuilder);
+  private readonly subscriptions = new Subscription();
+  private currentVideoNode: TodoItemFlatNode | null = null;
+  private playbackCompletionRecorded = false;
+  private readonly completionThreshold = 0.95;
   pausedTimes: { [key: string]: string } = {};
 
   constructor(
     private apiService: ApiService,
     private cdr: ChangeDetectorRef,
     private toast: NgToastService,
-    private historyService: HistoryService
+    private historyService: HistoryService,
+    private courseStorageService: CourseStorageService
   ) {
     this.treeFlattener = new MatTreeFlattener(
       createTransformer(this.flatNodeMap, this.nestedNodeMap),
@@ -105,50 +132,83 @@ export class TreeTable implements OnInit {
   }
 
   ngOnInit(): void {
-    this.apiService.data$.subscribe((data) => {
-      if (data?.length === 0 || !data) {
-        return;
-      }
-      this.dataSource.data = data!;
+    this.subscriptions.add(
+      this.apiService.data$.subscribe((data) => {
+        if (!data || data.length === 0) {
+          this.dataSource.data = [];
+          return;
+        }
 
-      this.applyWatchedHistory();
-    });
+        this.dataSource.data = data;
+        this.applyWatchedHistory();
+      })
+    );
+
+    this.subscriptions.add(
+      this.courseStorageService.courses$.subscribe((courses) => {
+        if (!this.selectedCourse) {
+          return;
+        }
+
+        this.selectedCourse =
+          courses.find((course) => course.path === this.selectedCourse?.path) ??
+          this.selectedCourse;
+      })
+    );
   }
 
-  addValueToInput(value: CardCourseType) {
+  ngOnDestroy(): void {
+    this.subscriptions.unsubscribe();
+  }
+
+  addValueToInput(value: CardCourseType): void {
     this.form.patchValue({ caminho: value.path });
-    this.onSubmit();
+    this.loadCourse(value.path);
   }
 
-  onSubmit() {
-    this.apiService.initialize(this.pathToCourse);
+  onSubmit(): void {
+    if (this.form.invalid) {
+      return;
+    }
+
+    const coursePath = this.pathToCourse.trim();
+
+    if (!coursePath) {
+      return;
+    }
+
+    this.form.patchValue({ caminho: coursePath });
+    this.loadCourse(coursePath);
   }
 
-  onVideoPaused(event: Event) {
-    if (!this.videoFileName || !this.pathToCourse) return;
+  onVideoPaused(event: Event): void {
+    if (!this.currentVideoNode || !this.pathToCourse) {
+      return;
+    }
+
     const videoElement = event.target as HTMLVideoElement;
+    if (this.shouldMarkVideoAsCompleted(videoElement)) {
+      this.completeCurrentVideoPlayback();
+      return;
+    }
 
-    const currentTime = videoElement.currentTime;
-
-    let historyUpdated = this.historyService.updateWatchedHistoryFromNode({
-      parentNode: this.treeControl.dataNodes.find(
-        (n) => n.item === this.videoFileName
-      )!,
-      descendants: [],
+    const historyUpdated = this.historyService.updateNodePlaybackProgress({
+      node: this.currentVideoNode,
       path: this.pathToCourse,
       treeControl: this.treeControl,
-      value: false,
-      currentTime: currentTime,
+      currentTime: videoElement.currentTime,
     });
 
-    this.apiService.updateDataHistoryOnFolder(historyUpdated, this.pathToCourse);
+    this.persistCourseProgress(historyUpdated);
   }
 
-  onVideoEnded() {
-    if (!this.videoFileName || !this.pathToCourse) return;
+  onVideoEnded(): void {
+    if (!this.currentVideoNode || !this.pathToCourse) {
+      return;
+    }
 
     const node = this.treeControl.dataNodes.find(
-      (n) => n.item === this.videoFileName
+      (item) => item.item === this.videoFileName
     );
 
     if (!node) {
@@ -158,7 +218,7 @@ export class TreeTable implements OnInit {
 
     this.checklistSelection.select(node);
 
-    let historyUpdated = this.historyService.updateWatchedHistoryFromNode({
+    const historyUpdated = this.historyService.updateWatchedHistoryFromNode({
       parentNode: node,
       descendants: [],
       path: this.pathToCourse,
@@ -166,8 +226,7 @@ export class TreeTable implements OnInit {
       value: true,
     });
 
-    this.apiService.updateDataHistoryOnFolder(historyUpdated, this.pathToCourse);
-
+    this.persistCourseProgress(historyUpdated);
     this.updateParentWatchedStatus(node);
 
     this.toast.success(
@@ -179,32 +238,78 @@ export class TreeTable implements OnInit {
     this.closeVideo(true);
   }
 
+  handleVideoEnded(): void {
+    if (!this.currentVideoNode || !this.pathToCourse) {
+      return;
+    }
+
+    const completedNode = this.currentVideoNode;
+    this.completeCurrentVideoPlayback();
+
+    this.toast.success(
+      `Video "${this.videoFileName}" concluido!`,
+      'Concluido',
+      3000
+    );
+
+    const nextNode = this.autoPlayNext
+      ? this.getNextVideoNode(completedNode)
+      : null;
+
+    this.closeVideo(true);
+
+    if (nextNode) {
+      setTimeout(() => {
+        this.playVideo(nextNode);
+      }, 250);
+    }
+  }
+
+  onVideoTimeUpdate(event: Event): void {
+    const videoElement = event.target as HTMLVideoElement;
+
+    if (this.shouldMarkVideoAsCompleted(videoElement)) {
+      this.completeCurrentVideoPlayback();
+    }
+  }
+
   public form: FormGroup = this.fb.group({
     caminho: ['', [Validators.required]],
   });
 
   private applyWatchedHistory(): void {
-    const raw = localStorage.getItem(this.pathToCourse);
-    if (!raw) return;
+    if (!this.pathToCourse) {
+      return;
+    }
 
-    const history: { [path: string]: IVideoProgress } = JSON.parse(raw);
+    const history = this.courseStorageService.getCourseProgress(
+      this.pathToCourse
+    ).history;
+
+    this.checklistSelection.clear();
+    this.pausedTimes = {};
 
     this.treeControl.dataNodes.forEach((node) => {
-      const path = PathService.getFullPath({
-        node: node,
+      const fullPath = PathService.getFullPath({
+        node,
         treeControl: this.treeControl,
       });
 
-      this.pausedTimes[node.item] =
-        history[path]?.currentTime?.toString() || '0';
-      if (history[path]?.watched) {
+      this.pausedTimes[node.item] = history[fullPath]?.currentTime?.toString() || '0';
+
+      if (history[fullPath]?.watched) {
         this.checklistSelection.select(node);
         const descendants = this.treeControl.getDescendants(node);
-        if (descendants.length == 0) return;
+
+        if (descendants.length === 0) {
+          return;
+        }
+
         this.checklistSelection.select(...descendants);
       }
     });
 
+    this.refreshCourseStats();
     this.cdr.detectChanges();
   }
 
@@ -213,15 +318,18 @@ export class TreeTable implements OnInit {
   };
 
   getTimePublished(fileName: string): string {
-    if (!this.pathToCourse) return '';
+    if (!this.pathToCourse) {
+      return '';
+    }
 
-    const raw = localStorage.getItem(this.pathToCourse);
-    if (!raw) return '';
+    const history = this.courseStorageService.getCourseProgress(
+      this.pathToCourse
+    ).history;
 
-    const history: { [path: string]: IVideoProgress } = JSON.parse(raw);
-
-    const node = this.treeControl.dataNodes.find((n) => n.item === fileName);
-    if (!node) return '';
+    const node = this.treeControl.dataNodes.find((item) => item.item === fileName);
+    if (!node) {
+      return '';
+    }
 
     const fullPath = PathService.getFullPath({
       node,
@@ -229,7 +337,9 @@ export class TreeTable implements OnInit {
     });
 
     const progress = history[fullPath]?.currentTime ?? 0;
-    if (progress <= 0) return '';
+    if (progress <= 0) {
+      return '';
+    }
 
     const minutes = Math.floor(progress / 60);
     const seconds = Math.floor(progress % 60)
@@ -237,6 +347,28 @@ export class TreeTable implements OnInit {
       .padStart(2, '0');
 
     return `${minutes}:${seconds}`;
+  }
+
+  getVideoWatchCount(node: TodoItemFlatNode): number {
+    return this.getVideoHistory(node)?.watchCount ?? 0;
+  }
+
+  getVideoCompletedAt(node: TodoItemFlatNode): string {
+    const completedAt = this.getVideoHistory(node)?.completedAt;
+
+    if (!completedAt) {
+      return '';
+    }
+
+    return new Date(completedAt).toLocaleString('pt-BR');
+  }
+
+  toggleAutoPlayNext(): void {
+    this.autoPlayNext = !this.autoPlayNext;
+    localStorage.setItem(
+      'history-course:auto-play-next',
+      JSON.stringify(this.autoPlayNext)
+    );
   }
 
   isExpandable = (node: TodoItemFlatNode) => {
@@ -247,44 +379,101 @@ export class TreeTable implements OnInit {
     return ofObservable(node.children);
   };
 
-  hasChild = (_: number, _nodeData: TodoItemFlatNode) => {
-    return _nodeData.expandable;
+  hasChild = (_: number, nodeData: TodoItemFlatNode) => {
+    return nodeData.expandable;
   };
 
   get pathToCourse(): string {
-    return this.form.value.caminho;
+    return this.form.value.caminho ?? '';
   }
 
-  /// Seleciona todos filhos de um nó. Ex: Documentos -> Resume.docx, CoverLetter.docx, Projects
-   todoItemSelectionToggleByNodeWithChild(node: TodoItemFlatNode): void {
-
+  toggleBranchSelection(node: TodoItemFlatNode): void {
     this.checklistSelection.toggle(node);
     const descendants = this.treeControl.getDescendants(node);
     const nodeIsSelected = this.checklistSelection.isSelected(node);
 
     if (nodeIsSelected) {
       this.checklistSelection.select(...descendants);
-      let historyUpdated = this.historyService.updateWatchedHistoryFromNode({
+    } else {
+      this.checklistSelection.deselect(...descendants);
+    }
+
+    const historyUpdated = this.historyService.markNodesWatched({
+      parentNode: node,
+      descendants,
+      path: this.pathToCourse,
+      treeControl: this.treeControl,
+      watched: nodeIsSelected,
+    });
+
+    this.persistCourseProgress(historyUpdated);
+    this.syncAncestors(node);
+  }
+
+  toggleLeafSelection(node: TodoItemFlatNode): void {
+    this.checklistSelection.toggle(node);
+    const nodeIsSelected = this.checklistSelection.isSelected(node);
+
+    const historyUpdated = nodeIsSelected
+      ? this.historyService.markNodesWatched({
+          parentNode: node,
+          descendants: [],
+          path: this.pathToCourse,
+          treeControl: this.treeControl,
+          watched: true,
+        })
+      : this.historyService.resetVideoProgress({
+          node,
+          path: this.pathToCourse,
+          treeControl: this.treeControl,
+        });
+
+    this.persistCourseProgress(historyUpdated);
+    this.syncAncestors(node);
+  }
+
+  resetLeafVideo(node: TodoItemFlatNode): void {
+    const historyUpdated = this.historyService.resetVideoProgress({
+      node,
+      path: this.pathToCourse,
+      treeControl: this.treeControl,
+    });
+
+    this.checklistSelection.deselect(node);
+    this.persistCourseProgress(historyUpdated);
+    this.syncAncestors(node);
+
+    if (this.currentVideoNode?.path === node.path) {
+      this.closeVideo(true);
+    }
+  }
+
+  todoItemSelectionToggleByNodeWithChild(node: TodoItemFlatNode): void {
+    this.checklistSelection.toggle(node);
+    const descendants = this.treeControl.getDescendants(node);
+    const nodeIsSelected = this.checklistSelection.isSelected(node);
+
+    if (nodeIsSelected) {
+      this.checklistSelection.select(...descendants);
+      const historyUpdated = this.historyService.updateWatchedHistoryFromNode({
         parentNode: node,
-        descendants: descendants,
+        descendants,
         path: this.pathToCourse,
         treeControl: this.treeControl,
       });
 
-          this.apiService.updateDataHistoryOnFolder(historyUpdated, this.pathToCourse);
-
+      this.persistCourseProgress(historyUpdated);
     } else {
       this.checklistSelection.deselect(...descendants);
-      let historyUpdated = this.historyService.removeHistoryByPathPrefix(
-        PathService.getFullPath({ node: node, treeControl: this.treeControl }),
+      const historyUpdated = this.historyService.removeHistoryByPathPrefix(
+        PathService.getFullPath({ node, treeControl: this.treeControl }),
         this.pathToCourse
       );
 
-      this.apiService.updateDataHistoryOnFolder(historyUpdated, this.pathToCourse);
+      this.persistCourseProgress(historyUpdated);
     }
+
     this.updateParentWatchedStatus(node);
-
-
   }
 
   todoItemSelectionToggleLeaf(node: TodoItemFlatNode): void {
@@ -292,89 +481,302 @@ export class TreeTable implements OnInit {
     const nodeIsSelected = this.checklistSelection.isSelected(node);
 
     if (nodeIsSelected) {
-      let historyUpdated = this.historyService.updateWatchedHistoryFromNode({
+      const historyUpdated = this.historyService.updateWatchedHistoryFromNode({
         parentNode: node,
         descendants: [],
         path: this.pathToCourse,
         treeControl: this.treeControl,
       });
 
-      this.apiService.updateDataHistoryOnFolder(historyUpdated, this.pathToCourse);
-
+      this.persistCourseProgress(historyUpdated);
     } else {
-      let historyUpdated = this.historyService.removeHistoryByPathPrefix(
-        PathService.getFullPath({ node: node, treeControl: this.treeControl }),
+      const historyUpdated = this.historyService.removeHistoryByPathPrefix(
+        PathService.getFullPath({ node, treeControl: this.treeControl }),
         this.pathToCourse
       );
-      this.apiService.updateDataHistoryOnFolder(historyUpdated, this.pathToCourse);
+
+      this.persistCourseProgress(historyUpdated);
     }
 
     this.updateParentWatchedStatus(node);
   }
 
   public playVideo(node: TodoItemFlatNode): void {
-    const path = node.path;
-    const encodedPath = encodeURIComponent(path);
+    const encodedPath = encodeURIComponent(node.path);
     this.videoUrl = `${environment.videoPath}?path=${encodedPath}`;
     this.videoFileName = node.item;
+    this.currentVideoNode = node;
+    this.playbackCompletionRecorded = false;
 
-    const raw = localStorage.getItem(this.pathToCourse);
-    if (raw) {
-      const history: { [path: string]: IVideoProgress } = JSON.parse(raw);
-      const fullPath = PathService.getFullPath({
-        node,
-        treeControl: this.treeControl,
-      });
-      const progress = history[fullPath]?.currentTime ?? 0;
+    const history = this.courseStorageService.getCourseProgress(
+      this.pathToCourse
+    ).history;
 
-      setTimeout(() => {
-        const video = document.querySelector('video');
-        if (video && progress > 0) {
-          video.currentTime = progress;
-        }
-      }, 500);
-    }
+    const fullPath = PathService.getFullPath({
+      node,
+      treeControl: this.treeControl,
+    });
+
+    const progress = history[fullPath]?.currentTime ?? 0;
+
+    setTimeout(() => {
+      const video = document.querySelector('video');
+      if (video && progress > 0) {
+        video.currentTime = progress;
+      }
+    }, 500);
   }
 
   public closeVideo(fromEndedVideo: boolean = false): void {
-    if(!fromEndedVideo)
-      this.onVideoPaused({ target: this.videoPlayer.nativeElement } as unknown as Event);
+    if (!fromEndedVideo && this.videoPlayer?.nativeElement) {
+      this.onVideoPaused({
+        target: this.videoPlayer.nativeElement,
+      } as unknown as Event);
+    }
 
     this.videoUrl = '';
     this.videoFileName = '';
-
+    this.currentVideoNode = null;
+    this.playbackCompletionRecorded = false;
   }
 
-  private updateParentWatchedStatus(node: TodoItemFlatNode) {
-    const parent = this.getParentNode(node);
-    if (parent) {
-      const descendants = this.treeControl.getDescendants(parent);
-      const allSelected = descendants.every((d) =>
-        this.checklistSelection.isSelected(d)
-      );
-
-      let historyUpdated = this.historyService.updateWatchedHistoryFromNode({
-        parentNode: parent,
-        descendants: [],
-        path: this.pathToCourse,
-        treeControl: this.treeControl,
-        value: allSelected,
-        currentTime: 0,
-      });
-
-      this.apiService.updateDataHistoryOnFolder(historyUpdated, this.pathToCourse);
-
+  getSelectedCourseBackground(): string {
+    if (!this.selectedCourse?.bannerUrl) {
+      return 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 45%, #bfdbfe 100%)';
     }
+
+    return `linear-gradient(180deg, rgba(15, 23, 42, 0.14) 0%, rgba(15, 23, 42, 0.84) 100%), url("${this.selectedCourse.bannerUrl}")`;
+  }
+
+  private updateParentWatchedStatus(node: TodoItemFlatNode): void {
+    const parent = this.getParentNode(node);
+    if (!parent) {
+      return;
+    }
+
+    const descendants = this.treeControl.getDescendants(parent);
+    const allSelected = descendants.every((item) =>
+      this.checklistSelection.isSelected(item)
+    );
+
+    const historyUpdated = this.historyService.updateWatchedHistoryFromNode({
+      parentNode: parent,
+      descendants: [],
+      path: this.pathToCourse,
+      treeControl: this.treeControl,
+      value: allSelected,
+      currentTime: 0,
+    });
+
+    this.persistCourseProgress(historyUpdated);
   }
 
   private getParentNode(node: TodoItemFlatNode): TodoItemFlatNode | null {
     const nodeIndex = this.treeControl.dataNodes.indexOf(node);
-    for (let i = nodeIndex - 1; i >= 0; i--) {
-      const current = this.treeControl.dataNodes[i];
+    for (let index = nodeIndex - 1; index >= 0; index--) {
+      const current = this.treeControl.dataNodes[index];
       if (current.level < node.level) {
         return current;
       }
     }
     return null;
+  }
+
+  private loadCourse(coursePath: string): void {
+    this.resetCourseState();
+    this.courseStorageService.ensureCourse(coursePath);
+    this.syncSelectedCourse(coursePath);
+
+    this.apiService.getCourseProgress(coursePath).subscribe({
+      next: (progress) => {
+        this.courseStorageService.saveCourseProgress(coursePath, progress);
+        this.syncSelectedCourse(coursePath);
+        this.apiService.initialize(coursePath);
+      },
+      error: (error) => {
+        console.error('Erro ao sincronizar progresso do curso:', error);
+        this.apiService.initialize(coursePath);
+      },
+    });
+  }
+
+  private persistCourseProgress(progress: ICourseProgress): void {
+    if (!this.pathToCourse) {
+      return;
+    }
+
+    this.courseStorageService.saveCourseProgress(this.pathToCourse, progress);
+    this.syncSelectedCourse(this.pathToCourse);
+    this.refreshCourseStats();
+
+    this.apiService.updateCourseProgressOnFolder(this.pathToCourse, progress).subscribe({
+      next: (serverProgress) => {
+        this.courseStorageService.saveCourseProgress(
+          this.pathToCourse,
+          serverProgress
+        );
+        this.syncSelectedCourse(this.pathToCourse);
+        this.refreshCourseStats();
+      },
+      error: (error) => {
+        console.error('Erro ao salvar progresso do curso no servidor:', error);
+      },
+    });
+  }
+
+  private resetCourseState(): void {
+    this.videoUrl = '';
+    this.videoFileName = '';
+    this.pausedTimes = {};
+    this.checklistSelection.clear();
+    this.dataSource.data = [];
+    this.courseStats = {
+      totalVideos: 0,
+      watchedVideos: 0,
+      percentage: 0,
+    };
+    this.currentVideoNode = null;
+    this.playbackCompletionRecorded = false;
+  }
+
+  private completeCurrentVideoPlayback(): void {
+    if (
+      !this.currentVideoNode ||
+      !this.pathToCourse ||
+      this.playbackCompletionRecorded
+    ) {
+      return;
+    }
+
+    this.playbackCompletionRecorded = true;
+    this.checklistSelection.select(this.currentVideoNode);
+
+    const historyUpdated = this.historyService.markVideoAsCompleted({
+      node: this.currentVideoNode,
+      path: this.pathToCourse,
+      treeControl: this.treeControl,
+    });
+
+    this.persistCourseProgress(historyUpdated);
+    this.syncAncestors(this.currentVideoNode);
+  }
+
+  private syncAncestors(node: TodoItemFlatNode): void {
+    let parent = this.getParentNode(node);
+
+    while (parent) {
+      const descendants = this.treeControl.getDescendants(parent);
+      const allSelected =
+        descendants.length > 0 &&
+        descendants.every((item) => this.checklistSelection.isSelected(item));
+
+      if (allSelected) {
+        this.checklistSelection.select(parent);
+      } else {
+        this.checklistSelection.deselect(parent);
+      }
+
+      parent = this.getParentNode(parent);
+    }
+
+    const historyUpdated = this.historyService.syncAncestorStatuses({
+      node,
+      path: this.pathToCourse,
+      treeControl: this.treeControl,
+      isNodeSelected: (target) => this.checklistSelection.isSelected(target),
+    });
+
+    this.persistCourseProgress(historyUpdated);
+  }
+
+  private getVideoHistory(node: TodoItemFlatNode) {
+    if (!this.pathToCourse) {
+      return null;
+    }
+
+    const history = this.courseStorageService.getCourseProgress(
+      this.pathToCourse
+    ).history;
+
+    return history[
+      PathService.getFullPath({
+        node,
+        treeControl: this.treeControl,
+      })
+    ] ?? null;
+  }
+
+  private shouldMarkVideoAsCompleted(video: HTMLVideoElement): boolean {
+    if (!Number.isFinite(video.duration) || video.duration <= 0) {
+      return false;
+    }
+
+    return video.currentTime / video.duration >= this.completionThreshold;
+  }
+
+  private getNextVideoNode(
+    currentNode: TodoItemFlatNode
+  ): TodoItemFlatNode | null {
+    const leafNodes = this.treeControl.dataNodes.filter((node) => !node.expandable);
+    const currentIndex = leafNodes.findIndex(
+      (node) => node.path === currentNode.path
+    );
+
+    if (currentIndex === -1 || currentIndex === leafNodes.length - 1) {
+      return null;
+    }
+
+    return leafNodes[currentIndex + 1];
+  }
+
+  private refreshCourseStats(): void {
+    const leafNodes = this.treeControl.dataNodes.filter((node) => !node.expandable);
+    const history = this.pathToCourse
+      ? this.courseStorageService.getCourseProgress(this.pathToCourse).history
+      : {};
+    const watchedVideos = leafNodes.filter((node) => {
+      const progress =
+        history[
+          PathService.getFullPath({
+            node,
+            treeControl: this.treeControl,
+          })
+        ];
+
+      return progress?.watched === true;
+    }).length;
+    const totalVideos = leafNodes.length;
+
+    this.courseStats = {
+      totalVideos,
+      watchedVideos,
+      percentage:
+        totalVideos > 0 ? Math.round((watchedVideos / totalVideos) * 100) : 0,
+    };
+  }
+
+  private readBooleanPreference(key: string, fallback: boolean): boolean {
+    const rawValue = localStorage.getItem(key);
+
+    if (rawValue === null) {
+      return fallback;
+    }
+
+    try {
+      return JSON.parse(rawValue) === true;
+    } catch {
+      return fallback;
+    }
+  }
+
+  private syncSelectedCourse(coursePath: string): void {
+    const courseProgress = this.courseStorageService.ensureCourse(coursePath);
+
+    this.selectedCourse = {
+      path: coursePath,
+      name: getCourseNameFromPath(coursePath),
+      bannerImage: courseProgress.bannerImage,
+      bannerUrl: buildCourseBannerUrl(coursePath, courseProgress.bannerImage),
+    };
   }
 }

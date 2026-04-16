@@ -4,6 +4,7 @@ import { BehaviorSubject } from 'rxjs';
 import { TodoItemNode } from '../domain/TodoItemNode';
 import { transformTree } from '../utils/transformer';
 import { environment } from '../../environments/environment';
+import { ICourseProgress } from '../domain/interfaces/ICourseProgress';
 
 @Injectable({ providedIn: 'root' })
 export class ApiService {
@@ -39,5 +40,37 @@ export class ApiService {
         console.error('Erro ao atualizar histórico no servidor:', err);
       }
     });
+  }
+
+  getCourseProgress(path: string) {
+    const params = new HttpParams().set('path', path);
+
+    return this.http.get<ICourseProgress>(`${environment.apiUrl}/course-progress`, {
+      params,
+    });
+  }
+
+  updateCourseProgressOnFolder(path: string, progress: ICourseProgress) {
+    return this.http.post<ICourseProgress>(`${environment.apiUrl}/course-progress`, {
+      path,
+      progress,
+    });
+  }
+
+  uploadCourseBanner(path: string, fileName: string, content: string) {
+    return this.http.post<ICourseProgress>(`${environment.apiUrl}/course-banner`, {
+      path,
+      fileName,
+      content,
+    });
+  }
+
+  removeCourseBanner(path: string) {
+    return this.http.post<ICourseProgress>(
+      `${environment.apiUrl}/course-banner/remove`,
+      {
+        path,
+      }
+    );
   }
 }

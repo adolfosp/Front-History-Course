@@ -1,5 +1,10 @@
 <main>
   <div class="container">
+    <div class="hero-actions">
+      <button type="button" class="theme-toggle" (click)="toggleTheme()">
+        {{ isDarkTheme ? 'Tema claro' : 'Tema escuro' }}
+      </button>
+    </div>
     <h1>📚 Histórico de Cursos</h1>
     <p>Acompanhe e gerencie o seu progresso acadêmico de forma simples e intuitiva.</p>
 
