@@ -96,7 +96,7 @@
           @let playbackValue = getTimePublished(node.item);
           @if (playbackValue && playbackValue != '0') {
           <span class="file-meta__chip paused-time">
-            Video pausado em <span id="time-paused">{{ playbackValue }}</span>
+            Video pausado em <span id="time-paused"> {{ playbackValue }}</span>
           </span>
           }
           @let completedAt = getVideoCompletedAt(node);
@@ -118,7 +118,7 @@
           @let playbackValueDuplicate = getTimePublished(node.item);
           @if (false && playbackValueDuplicate && playbackValueDuplicate != '0') {
           <span class="paused-time">
-            Vídeo pausado em <span id="time-paused">{{ playbackValueDuplicate }}</span>
+            Vídeo pausado em <span id="time-paused"> {{ playbackValueDuplicate }}</span>
           </span>
           }
 
