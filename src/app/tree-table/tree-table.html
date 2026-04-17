@@ -96,7 +96,8 @@
           @let playbackValue = getTimePublished(node.item);
           @if (playbackValue && playbackValue != '0') {
           <span class="file-meta__chip paused-time">
-            Video pausado em <span id="time-paused"> {{ playbackValue }}</span>
+            <span class="paused-time__label">Video pausado em</span>
+            <span class="paused-time__value">{{ playbackValue }}</span>
           </span>
           }
           @let completedAt = getVideoCompletedAt(node);

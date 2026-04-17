@@ -242,6 +242,17 @@ main {
   color: var(--text-secondary);
 }
 
+.paused-time__label,
+.paused-time__value {
+  display: inline-block;
+}
+
+.paused-time__value {
+  margin-left: 0.35rem;
+  color: #dc2626;
+  font-weight: bold;
+}
+
 .control-panel .paused-time {
   display: none;
 }
@@ -300,11 +311,6 @@ main {
 
 .close-button:active {
   transform: scale(0.92);
-}
-
-#time-paused {
-  color: #dc2626;
-  font-weight: bold;
 }
 
 @media (max-width: 700px) {
