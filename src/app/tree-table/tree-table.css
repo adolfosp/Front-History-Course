@@ -106,6 +106,31 @@ main {
   color: rgba(248, 250, 252, 0.86);
 }
 
+.selected-course-banner__loading {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  width: fit-content;
+  margin-top: 0.85rem;
+  padding: 0.55rem 0.9rem;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: #f8fafc;
+  font-size: 0.9rem;
+}
+
+.selected-course-banner__spinner,
+.course-loading-state__spinner {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.28);
+  border-top-color: #f8fafc;
+  animation: course-loading-spin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+
 .selected-course-banner__label {
   display: inline-flex;
   width: fit-content;
@@ -161,6 +186,35 @@ main {
 .selected-course-banner__progress-fill {
   height: 100%;
   background: linear-gradient(90deg, #60a5fa 0%, #f8fafc 100%);
+}
+
+.course-loading-state {
+  min-height: 240px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.85rem;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.course-loading-state h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: var(--text-primary);
+}
+
+.course-loading-state p {
+  margin: 0;
+  max-width: 420px;
+}
+
+.course-loading-state__spinner {
+  width: 28px;
+  height: 28px;
+  border-color: rgba(37, 99, 235, 0.18);
+  border-top-color: var(--accent);
 }
 
 #mat-tree {
@@ -311,6 +365,12 @@ main {
 
 .close-button:active {
   transform: scale(0.92);
+}
+
+@keyframes course-loading-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @media (max-width: 700px) {

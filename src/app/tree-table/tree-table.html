@@ -10,8 +10,11 @@
           id="caminho"
           formControlName="caminho"
           placeholder="Ex: C:\\Users\\MeuUsuario\\Documentos\\MeuCurso"
+          [disabled]="isLoadingCourse"
           required />
-        <button type="submit" [disabled]="form.invalid">Abrir curso</button>
+        <button type="submit" [disabled]="form.invalid || isLoadingCourse">
+          {{ isLoadingCourse ? 'Carregando...' : 'Abrir curso' }}
+        </button>
       </div>
     </form>
 
@@ -29,6 +32,12 @@
       <span class="selected-course-banner__label">Curso ativo</span>
       <h2>{{ selectedCourse.name }}</h2>
       <p>{{ selectedCourse.path }}</p>
+      @if (isLoadingCourse) {
+      <div class="selected-course-banner__loading">
+        <span class="selected-course-banner__spinner" aria-hidden="true"></span>
+        <span>Carregando conteudo de {{ loadingCourseName || selectedCourse.name }}...</span>
+      </div>
+      }
       <div class="selected-course-banner__stats">
         <span class="selected-course-banner__stat">
           {{ courseStats.watchedVideos }}/{{ courseStats.totalVideos }} videos
@@ -59,6 +68,13 @@
 
   <section id="tree-section" class="tree-section">
     @if (selectedCourse) {
+    @if (isLoadingCourse) {
+    <div class="course-loading-state" aria-live="polite">
+      <span class="course-loading-state__spinner" aria-hidden="true"></span>
+      <h3>Abrindo curso</h3>
+      <p>Estamos lendo as pastas e montando a arvore de videos.</p>
+    </div>
+    } @else {
     <mat-tree [dataSource]="dataSource" [treeControl]="treeControl" id="mat-tree">
       <mat-tree-node
         *matTreeNodeDef="let node; when: hasChild"
@@ -134,6 +150,7 @@
         </div>
       </mat-tree-node>
     </mat-tree>
+    }
     } @else {
     <p class="tree-empty-message">
       Selecione um curso salvo ou informe o caminho de uma pasta para carregar o conteúdo.

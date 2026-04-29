@@ -74,6 +74,8 @@ export class TreeTable implements OnInit, OnDestroy {
   videoUrl = '';
   videoFileName = '';
   selectedCourse: CardCourseType | null = null;
+  isLoadingCourse = false;
+  loadingCourseName = '';
   autoPlayNext = this.readBooleanPreference(
     'history-course:auto-play-next',
     true
@@ -136,10 +138,12 @@ export class TreeTable implements OnInit, OnDestroy {
       this.apiService.data$.subscribe((data) => {
         if (!data || data.length === 0) {
           this.dataSource.data = [];
+          this.finishCourseLoading();
           return;
         }
 
         this.dataSource.data = data;
+        this.finishCourseLoading();
         this.applyWatchedHistory();
       })
     );
@@ -162,11 +166,19 @@ export class TreeTable implements OnInit, OnDestroy {
   }
 
   addValueToInput(value: CardCourseType): void {
+    if (this.isLoadingCourse) {
+      return;
+    }
+
     this.form.patchValue({ caminho: value.path });
     this.loadCourse(value.path);
   }
 
   onSubmit(): void {
+    if (this.isLoadingCourse) {
+      return;
+    }
+
     if (this.form.invalid) {
       return;
     }
@@ -583,6 +595,8 @@ export class TreeTable implements OnInit, OnDestroy {
   }
 
   private loadCourse(coursePath: string): void {
+    this.isLoadingCourse = true;
+    this.loadingCourseName = getCourseNameFromPath(coursePath);
     this.resetCourseState();
     this.courseStorageService.ensureCourse(coursePath);
     this.syncSelectedCourse(coursePath);
@@ -591,13 +605,30 @@ export class TreeTable implements OnInit, OnDestroy {
       next: (progress) => {
         this.courseStorageService.saveCourseProgress(coursePath, progress);
         this.syncSelectedCourse(coursePath);
-        this.apiService.initialize(coursePath);
+        this.initializeCourseTree(coursePath);
       },
       error: (error) => {
         console.error('Erro ao sincronizar progresso do curso:', error);
-        this.apiService.initialize(coursePath);
+        this.initializeCourseTree(coursePath);
       },
     });
+  }
+
+  private initializeCourseTree(coursePath: string): void {
+    this.apiService.initialize(coursePath).subscribe({
+      next: () => {
+        this.finishCourseLoading();
+      },
+      error: (error) => {
+        console.error('Erro ao carregar conteudo do curso:', error);
+        this.finishCourseLoading();
+      },
+    });
+  }
+
+  private finishCourseLoading(): void {
+    this.isLoadingCourse = false;
+    this.loadingCourseName = '';
   }
 
   private persistCourseProgress(progress: ICourseProgress): void {
@@ -780,3 +811,4 @@ export class TreeTable implements OnInit, OnDestroy {
     };
   }
 }
+
