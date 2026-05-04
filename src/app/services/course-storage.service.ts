@@ -68,15 +68,30 @@ export class CourseStorageService {
       }
 
       const progress = normalizeCourseProgress(localStorage.getItem(path));
+      const courseName = getCourseNameFromPath(path);
 
       result.push({
         path,
-        name: getCourseNameFromPath(path),
+        name: courseName,
+        isCompleted: this.isCourseCompleted(courseName, progress),
         bannerImage: progress.bannerImage,
         bannerUrl: buildCourseBannerUrl(path, progress.bannerImage),
       });
     }
 
-    return result.sort((left, right) => left.name.localeCompare(right.name));
+    return result.sort((left, right) => {
+      if (left.isCompleted !== right.isCompleted) {
+        return Number(left.isCompleted) - Number(right.isCompleted);
+      }
+
+      return left.name.localeCompare(right.name);
+    });
+  }
+
+  private isCourseCompleted(
+    courseName: string,
+    progress: ICourseProgress
+  ): boolean {
+    return progress.history[courseName]?.watched === true;
   }
 }

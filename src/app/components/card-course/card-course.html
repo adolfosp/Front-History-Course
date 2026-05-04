@@ -1,18 +1,24 @@
-<h2>Cursos em progresso</h2>
+<h2>Cursos salvos</h2>
 @if (items().length) {
 <section class="cards">
   @for (item of items(); track trackByPath($index, item)) {
   <article
     class="card"
+    [class.card--completed]="item.isCompleted"
     [style.background-image]="getCardBackground(item)">
     <div class="card__overlay"></div>
     <button type="button" class="close-btn" (click)="deleteCourse(item)">×</button>
 
     <div class="card__content">
       <div class="card__header">
-        <span class="card__badge">
-          {{ item.bannerImage ? 'Com banner' : 'Sem banner' }}
-        </span>
+        <div class="card__badges">
+          <span class="card__badge">
+            {{ item.bannerImage ? 'Com banner' : 'Sem banner' }}
+          </span>
+          @if (item.isCompleted) {
+          <span class="card__badge card__badge--completed">Concluido</span>
+          }
+        </div>
       </div>
 
       <button type="button" (click)="emitClick(item)" class="card__title">

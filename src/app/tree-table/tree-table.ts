@@ -802,10 +802,12 @@ export class TreeTable implements OnInit, OnDestroy {
 
   private syncSelectedCourse(coursePath: string): void {
     const courseProgress = this.courseStorageService.ensureCourse(coursePath);
+    const courseName = getCourseNameFromPath(coursePath);
 
     this.selectedCourse = {
       path: coursePath,
-      name: getCourseNameFromPath(coursePath),
+      name: courseName,
+      isCompleted: courseProgress.history[courseName]?.watched === true,
       bannerImage: courseProgress.bannerImage,
       bannerUrl: buildCourseBannerUrl(coursePath, courseProgress.bannerImage),
     };
