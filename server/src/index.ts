@@ -65,6 +65,7 @@ type VideoProgress = {
 
 type CourseProgress = {
   bannerImage: string | null;
+  totalVideos: number;
   history: Record<string, VideoProgress>;
 };
 
@@ -162,6 +163,7 @@ function normalizeCourseProgress(value: unknown): CourseProgress {
   if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
     return {
       bannerImage: null,
+      totalVideos: 0,
       history: {},
     };
   }
@@ -174,12 +176,19 @@ function normalizeCourseProgress(value: unknown): CourseProgress {
         typeof candidate.bannerImage === 'string' && candidate.bannerImage.trim().length > 0
           ? candidate.bannerImage
           : null,
+      totalVideos:
+        typeof candidate.totalVideos === 'number' &&
+        Number.isFinite(candidate.totalVideos) &&
+        candidate.totalVideos >= 0
+          ? candidate.totalVideos
+          : 0,
       history: normalizeHistory(candidate.history),
     };
   }
 
   return {
     bannerImage: null,
+    totalVideos: 0,
     history: normalizeHistory(candidate),
   };
 }
@@ -194,6 +203,7 @@ function readCourseProgressFile(coursePath: string): CourseProgress {
   if (!fs.existsSync(progressFilePath)) {
     return {
       bannerImage: null,
+      totalVideos: 0,
       history: {},
     };
   }
@@ -203,6 +213,7 @@ function readCourseProgressFile(coursePath: string): CourseProgress {
   if (!raw) {
     return {
       bannerImage: null,
+      totalVideos: 0,
       history: {},
     };
   }
@@ -295,10 +306,43 @@ function ensureExistingDirectory(dirPath: string): boolean {
   return fs.existsSync(dirPath) && fs.statSync(dirPath).isDirectory();
 }
 
+function countVideoFiles(
+  dirPath: string,
+  maxDepth = 10,
+  currentDepth = 0
+): number {
+  if (currentDepth > maxDepth) {
+    return 0;
+  }
+
+  let totalVideos = 0;
+
+  for (const item of fs.readdirSync(dirPath)) {
+    const fullPath = path.join(dirPath, item);
+
+    try {
+      const itemStats = fs.statSync(fullPath);
+
+      if (itemStats.isDirectory()) {
+        totalVideos += countVideoFiles(fullPath, maxDepth, currentDepth + 1);
+      } else if (itemStats.isFile() && isVideoFile(item)) {
+        totalVideos++;
+      }
+    } catch (error) {
+      console.warn(`Erro ao contar videos em ${fullPath}: ${(error as Error).message}`);
+    }
+  }
+
+  return totalVideos;
+}
+
 function getCourseProgressWithAutomaticBanner(
   coursePath: string
 ): CourseProgress {
-  const progress = readCourseProgressFile(coursePath);
+  const progress = {
+    ...readCourseProgressFile(coursePath),
+    totalVideos: countVideoFiles(coursePath),
+  };
   const currentBannerPath =
     progress.bannerImage && resolveBannerPath(coursePath, progress.bannerImage);
 

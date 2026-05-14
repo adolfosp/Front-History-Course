@@ -29,6 +29,14 @@ export class ApiService {
     );
   }
 
+  getCourseVideoCount(dirPath: string) {
+    const params = new HttpParams().set('dir', dirPath).set('depth', '10');
+
+    return this.http
+      .get<any>(`${environment.apiUrl}/tree`, { params })
+      .pipe(map((tree) => this.countVideosInTree(tree)));
+  }
+
   updateDataHistoryOnFolder(history: string, path: string): void {
     this.http
       .post(`${environment.apiUrl}/update-history`, {
@@ -74,6 +82,25 @@ export class ApiService {
       {
         path,
       }
+    );
+  }
+
+  private countVideosInTree(node: any): number {
+    if (!node || typeof node !== 'object') {
+      return 0;
+    }
+
+    if (node.type === 'video') {
+      return 1;
+    }
+
+    if (!Array.isArray(node.children)) {
+      return 0;
+    }
+
+    return node.children.reduce(
+      (total: number, child: any) => total + this.countVideosInTree(child),
+      0
     );
   }
 }

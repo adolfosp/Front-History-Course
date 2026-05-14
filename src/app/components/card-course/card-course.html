@@ -90,6 +90,29 @@
               </button>
               }
             </div>
+
+            <footer class="card__progress">
+              <div class="card__progress-row">
+                <span>Progresso</span>
+                @if (item.progress.knownVideos > 0) {
+                <strong>{{ item.progress.percentage }}%</strong>
+                } @else {
+                <strong>--</strong>
+                }
+              </div>
+              <div class="card__progress-track">
+                <span
+                  class="card__progress-fill"
+                  [style.width.%]="item.progress.percentage"></span>
+              </div>
+              <small>
+                @if (item.progress.knownVideos > 0) {
+                {{ item.progress.watchedVideos }}/{{ item.progress.knownVideos }} videos do curso
+                } @else {
+                Sem progresso registrado
+                }
+              </small>
+            </footer>
           </div>
         </article>
         }

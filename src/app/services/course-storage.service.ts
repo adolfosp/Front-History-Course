@@ -124,11 +124,13 @@ export class CourseStorageService {
 
       const progress = normalizeCourseProgress(storedValue);
       const courseName = getCourseNameFromPath(path);
+      const courseProgress = this.getCardProgress(progress);
 
       result.push({
         path,
         name: courseName,
         isCompleted: this.isCourseCompleted(courseName, progress),
+        progress: courseProgress,
         bannerImage: progress.bannerImage,
         bannerUrl: buildCourseBannerUrl(path, progress.bannerImage),
       });
@@ -148,6 +150,27 @@ export class CourseStorageService {
     progress: ICourseProgress
   ): boolean {
     return progress.history[courseName]?.watched === true;
+  }
+
+  private getCardProgress(progress: ICourseProgress): CardCourseType['progress'] {
+    const videoEntries = Object.entries(progress.history).filter(([path]) =>
+      this.isVideoPath(path)
+    );
+    const watchedVideos = videoEntries.filter(
+      ([, videoProgress]) => videoProgress.watched === true
+    ).length;
+    const knownVideos = Math.max(progress.totalVideos ?? 0, videoEntries.length);
+
+    return {
+      watchedVideos,
+      knownVideos,
+      percentage:
+        knownVideos > 0 ? Math.round((watchedVideos / knownVideos) * 100) : 0,
+    };
+  }
+
+  private isVideoPath(path: string): boolean {
+    return /\.(mp4|m4v|mov|webm|mkv|avi)$/i.test(path);
   }
 
   private readQueuedCourses(): QueuedCourseType[] {

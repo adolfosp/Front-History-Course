@@ -109,6 +109,7 @@ export function normalizeCourseProgress(raw: unknown): ICourseProgress {
   if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
     return {
       bannerImage: null,
+      totalVideos: 0,
       history: {},
     };
   }
@@ -122,12 +123,19 @@ export function normalizeCourseProgress(raw: unknown): ICourseProgress {
         candidate['bannerImage'].trim().length > 0
           ? candidate['bannerImage']
           : null,
+      totalVideos:
+        typeof candidate['totalVideos'] === 'number' &&
+        Number.isFinite(candidate['totalVideos']) &&
+        candidate['totalVideos'] >= 0
+          ? candidate['totalVideos']
+          : 0,
       history: normalizeHistory(candidate['history']),
     };
   }
 
   return {
     bannerImage: null,
+    totalVideos: 0,
     history: normalizeHistory(candidate),
   };
 }
@@ -135,6 +143,11 @@ export function normalizeCourseProgress(raw: unknown): ICourseProgress {
 export function serializeCourseProgress(progress: ICourseProgress): string {
   return JSON.stringify({
     bannerImage: progress.bannerImage ?? null,
+    totalVideos:
+      typeof progress.totalVideos === 'number' &&
+      Number.isFinite(progress.totalVideos)
+        ? progress.totalVideos
+        : 0,
     history: progress.history ?? {},
   });
 }

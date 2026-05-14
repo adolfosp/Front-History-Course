@@ -818,6 +818,25 @@ export class TreeTable implements OnInit, OnDestroy {
       percentage:
         totalVideos > 0 ? Math.round((watchedVideos / totalVideos) * 100) : 0,
     };
+    this.persistTotalVideosForSelectedCourse();
+  }
+
+  private persistTotalVideosForSelectedCourse(): void {
+    if (!this.pathToCourse || this.courseStats.totalVideos <= 0) {
+      return;
+    }
+
+    const progress = this.courseStorageService.getCourseProgress(this.pathToCourse);
+
+    if (progress.totalVideos === this.courseStats.totalVideos) {
+      return;
+    }
+
+    this.courseStorageService.saveCourseProgress(this.pathToCourse, {
+      ...progress,
+      totalVideos: this.courseStats.totalVideos,
+    });
+    this.syncSelectedCourse(this.pathToCourse);
   }
 
   private readBooleanPreference(key: string, fallback: boolean): boolean {
@@ -842,6 +861,11 @@ export class TreeTable implements OnInit, OnDestroy {
       path: coursePath,
       name: courseName,
       isCompleted: courseProgress.history[courseName]?.watched === true,
+      progress: {
+        watchedVideos: this.courseStats.watchedVideos,
+        knownVideos: this.courseStats.totalVideos,
+        percentage: this.courseStats.percentage,
+      },
       bannerImage: courseProgress.bannerImage,
       bannerUrl: buildCourseBannerUrl(coursePath, courseProgress.bannerImage),
     };

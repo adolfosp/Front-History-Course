@@ -75,6 +75,11 @@ export class CardCourse implements OnInit, OnDestroy {
       path: course.path,
       name: course.name,
       isCompleted: false,
+      progress: {
+        watchedVideos: 0,
+        knownVideos: 0,
+        percentage: 0,
+      },
       bannerImage: null,
       bannerUrl: null,
     });
@@ -169,12 +174,60 @@ export class CardCourse implements OnInit, OnDestroy {
     for (const course of this.courseStorageService.getCoursesSnapshot()) {
       this.apiService.getCourseProgress(course.path).subscribe({
         next: (progress) => {
-          this.courseStorageService.saveCourseProgress(course.path, progress);
+          const currentProgress = this.courseStorageService.getCourseProgress(
+            course.path
+          );
+          const mergedProgress = {
+            ...progress,
+            totalVideos: Math.max(
+              progress.totalVideos ?? 0,
+              currentProgress.totalVideos ?? 0
+            ),
+          };
+
+          this.courseStorageService.saveCourseProgress(
+            course.path,
+            mergedProgress
+          );
+          this.syncCourseVideoCount(course.path, mergedProgress);
         },
         error: (error) => {
           console.error('Erro ao sincronizar dados do curso salvo:', error);
+          this.syncCourseVideoCount(
+            course.path,
+            this.courseStorageService.getCourseProgress(course.path)
+          );
         },
       });
     }
+  }
+
+  private syncCourseVideoCount(
+    coursePath: string,
+    progress: ReturnType<CourseStorageService['getCourseProgress']>
+  ): void {
+    this.apiService.getCourseVideoCount(coursePath).subscribe({
+      next: (totalVideos) => {
+        if (totalVideos <= 0 || progress.totalVideos === totalVideos) {
+          return;
+        }
+
+        const updatedProgress = {
+          ...progress,
+          totalVideos,
+        };
+
+        this.courseStorageService.saveCourseProgress(coursePath, updatedProgress);
+        this.apiService.updateCourseProgressOnFolder(coursePath, updatedProgress)
+          .subscribe({
+            error: (error) => {
+              console.error('Erro ao salvar total de videos do curso:', error);
+            },
+          });
+      },
+      error: (error) => {
+        console.error('Erro ao contar videos do curso salvo:', error);
+      },
+    });
   }
 }

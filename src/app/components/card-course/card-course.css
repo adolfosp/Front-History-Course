@@ -135,7 +135,7 @@ input {
 }
 
 .card {
-  min-height: 230px;
+  min-height: 384px;
   padding: 16px;
   transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
@@ -157,13 +157,14 @@ input {
 .card__content {
   position: relative;
   z-index: 1;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-rows: 34px 5.4rem 4.4rem 88px minmax(40px, auto);
   gap: 12px;
-  min-height: 230px;
+  min-height: 384px;
 }
 
 .card__badge {
+  align-self: start;
   width: fit-content;
   border: 1px solid rgba(255, 255, 255, 0.22);
   border-radius: 999px;
@@ -175,6 +176,9 @@ input {
 }
 
 .card__title {
+  display: -webkit-box;
+  align-self: start;
+  overflow: hidden;
   border: 0;
   padding: 0;
   background: transparent;
@@ -185,20 +189,69 @@ input {
   line-height: 1.22;
   text-align: left;
   word-break: break-word;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
 }
 
 .card__path {
+  display: -webkit-box;
+  align-self: start;
+  overflow: hidden;
   color: rgba(255, 255, 255, 0.82);
   font-size: 0.82rem;
   line-height: 1.4;
   word-break: break-all;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
 }
 
 .card__actions {
   display: flex;
   flex-wrap: wrap;
+  align-content: start;
+  align-self: start;
   gap: 8px;
-  margin-top: auto;
+}
+
+.card__progress {
+  align-self: end;
+  display: grid;
+  gap: 6px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.card__progress-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: rgba(255, 255, 255, 0.84);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.card__progress-row strong {
+  color: #ffffff;
+}
+
+.card__progress-track {
+  height: 7px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+  overflow: hidden;
+}
+
+.card__progress-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--accent), #86efac);
+}
+
+.card__progress small {
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.74rem;
 }
 
 .icon-action,
