@@ -1,9 +1,14 @@
-<main>
+<main class="course-workspace">
   <app-card-course (clickOnCourse)="addValueToInput($event)"></app-card-course>
 
   <section class="form-section">
+    <div class="form-section__copy">
+      <span>Curso baixado</span>
+      <h2>Abrir por caminho local</h2>
+      <p>Use este campo quando a pasta ja estiver no computador. Para cursos futuros, use a fila acima.</p>
+    </div>
+
     <form [formGroup]="form" (ngSubmit)="onSubmit()" class="path-form">
-      <label for="caminho">Pasta do curso</label>
       <div class="form-input-group">
         <input
           type="text"
@@ -19,7 +24,7 @@
     </form>
 
     @if (form.invalid) {
-    <p class="error-message">Por favor, informe um caminho de pasta válido.</p>
+    <p class="error-message">Informe o caminho apenas quando quiser abrir um curso baixado.</p>
     }
   </section>
 
@@ -58,9 +63,9 @@
           [style.width.%]="courseStats.percentage"></div>
       </div>
       @if (selectedCourse.bannerImage) {
-      <small>Banner salvo no progress.json e dentro da pasta do curso.</small>
+      <small>Capa salva no progress.json e dentro da pasta do curso.</small>
       } @else {
-      <small>Use o card acima para adicionar uma imagem de capa para este curso.</small>
+      <small>Use o card acima para adicionar uma capa para este curso.</small>
       }
     </div>
   </section>
@@ -118,7 +123,7 @@
           }
           @let completedAt = getVideoCompletedAt(node);
           @if (completedAt) {
-          <span class="file-meta__chip">
+          <span class="file-meta__chip file-meta__chip--completed">
             Concluido em {{ completedAt }}
           </span>
           }
@@ -131,13 +136,6 @@
           <button mat-icon-button color="warn" (click)="resetLeafVideo(node)">
             <mat-icon>restart_alt</mat-icon>
           </button>
-
-          @let playbackValueDuplicate = getTimePublished(node.item);
-          @if (false && playbackValueDuplicate && playbackValueDuplicate != '0') {
-          <span class="paused-time">
-            Vídeo pausado em <span id="time-paused"> {{ playbackValueDuplicate }}</span>
-          </span>
-          }
 
           <app-tree-checkbox
             [node]="node"
@@ -152,15 +150,16 @@
     </mat-tree>
     }
     } @else {
-    <p class="tree-empty-message">
-      Selecione um curso salvo ou informe o caminho de uma pasta para carregar o conteúdo.
-    </p>
+    <div class="tree-empty-message">
+      <h3>Nenhum curso aberto</h3>
+      <p>Escolha um curso em andamento, preencha um caminho local ou deixe algo planejado na fila.</p>
+    </div>
     }
   </section>
 
   <div class="video-modal-backdrop" *ngIf="videoUrl">
     <div class="video-modal">
-      <button class="close-button" (click)="closeVideo()">✖</button>
+      <button class="close-button" (click)="closeVideo()">x</button>
       <h3>{{ videoFileName }}</h3>
       <video
         #videoPlayer
@@ -171,7 +170,7 @@
         (pause)="onVideoPaused($event)"
         (timeupdate)="onVideoTimeUpdate($event)">
         <source [src]="videoUrl" type="video/mp4" />
-        Seu navegador não suporta vídeo HTML5.
+        Seu navegador nao suporta video HTML5.
       </video>
     </div>
   </div>

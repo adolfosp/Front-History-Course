@@ -1,21 +1,28 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
-import { CardCourseType } from '../domain/types/CardHouse';
+import { CardCourseType, QueuedCourseType } from '../domain/types/CardHouse';
 import { ICourseProgress } from '../domain/interfaces/ICourseProgress';
 import {
   buildCourseBannerUrl,
   getCourseNameFromPath,
+  isStoredCourseProgress,
   normalizeCourseProgress,
   serializeCourseProgress,
 } from '../utils/course-progress';
 
 @Injectable({ providedIn: 'root' })
 export class CourseStorageService {
+  private readonly appPreferenceKeyPrefix = 'history-course:';
+  private readonly queuedCoursesKey = 'history-course:course-queue';
   private readonly coursesSubject = new BehaviorSubject<CardCourseType[]>(
     this.readAllCourses()
   );
+  private readonly queuedCoursesSubject = new BehaviorSubject<QueuedCourseType[]>(
+    this.readQueuedCourses()
+  );
 
   readonly courses$ = this.coursesSubject.asObservable();
+  readonly queuedCourses$ = this.queuedCoursesSubject.asObservable();
 
   getCourseProgress(path: string): ICourseProgress {
     return normalizeCourseProgress(localStorage.getItem(path));
@@ -53,8 +60,46 @@ export class CourseStorageService {
     return this.coursesSubject.value;
   }
 
+  getQueuedCoursesSnapshot(): QueuedCourseType[] {
+    return this.queuedCoursesSubject.value;
+  }
+
+  addQueuedCourse(name: string, path = ''): void {
+    const trimmedName = name.trim();
+
+    if (!trimmedName) {
+      return;
+    }
+
+    const queuedCourses = [
+      ...this.queuedCoursesSubject.value,
+      {
+        id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+        name: trimmedName,
+        path: path.trim(),
+      },
+    ];
+
+    this.saveQueuedCourses(queuedCourses);
+  }
+
+  updateQueuedCoursePath(id: string, path: string): void {
+    const queuedCourses = this.queuedCoursesSubject.value.map((course) =>
+      course.id === id ? { ...course, path: path.trim() } : course
+    );
+
+    this.saveQueuedCourses(queuedCourses);
+  }
+
+  deleteQueuedCourse(id: string): void {
+    this.saveQueuedCourses(
+      this.queuedCoursesSubject.value.filter((course) => course.id !== id)
+    );
+  }
+
   refreshCourses(): void {
     this.coursesSubject.next(this.readAllCourses());
+    this.queuedCoursesSubject.next(this.readQueuedCourses());
   }
 
   private readAllCourses(): CardCourseType[] {
@@ -67,7 +112,17 @@ export class CourseStorageService {
         continue;
       }
 
-      const progress = normalizeCourseProgress(localStorage.getItem(path));
+      if (path.startsWith(this.appPreferenceKeyPrefix)) {
+        continue;
+      }
+
+      const storedValue = localStorage.getItem(path);
+
+      if (!isStoredCourseProgress(storedValue)) {
+        continue;
+      }
+
+      const progress = normalizeCourseProgress(storedValue);
       const courseName = getCourseNameFromPath(path);
 
       result.push({
@@ -93,5 +148,58 @@ export class CourseStorageService {
     progress: ICourseProgress
   ): boolean {
     return progress.history[courseName]?.watched === true;
+  }
+
+  private readQueuedCourses(): QueuedCourseType[] {
+    const rawValue = localStorage.getItem(this.queuedCoursesKey);
+
+    if (!rawValue) {
+      return [];
+    }
+
+    try {
+      const parsed = JSON.parse(rawValue);
+
+      if (!Array.isArray(parsed)) {
+        return [];
+      }
+
+      return parsed
+        .map((course): QueuedCourseType | null => {
+          if (!course || typeof course !== 'object') {
+            return null;
+          }
+
+          const candidate = course as Record<string, unknown>;
+          const name =
+            typeof candidate['name'] === 'string'
+              ? candidate['name'].trim()
+              : '';
+
+          if (!name) {
+            return null;
+          }
+
+          return {
+            id:
+              typeof candidate['id'] === 'string' && candidate['id'].trim()
+                ? candidate['id']
+                : `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+            name,
+            path:
+              typeof candidate['path'] === 'string'
+                ? candidate['path'].trim()
+                : '',
+          };
+        })
+        .filter((course): course is QueuedCourseType => course !== null);
+    } catch {
+      return [];
+    }
+  }
+
+  private saveQueuedCourses(courses: QueuedCourseType[]): void {
+    localStorage.setItem(this.queuedCoursesKey, JSON.stringify(courses));
+    this.queuedCoursesSubject.next(courses);
   }
 }

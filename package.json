@@ -1,6 +1,6 @@
 {
   "name": "history-course",
-  "version": "2.3.0",
+  "version": "2.4.0",
   "main": "electron/main.js",
   "build": {
     "appId": "com.fronthistorycourse.app",
@@ -53,6 +53,7 @@
     "@angular/router": "^20.0.0",
     "ng-angular-popup": "^1.0.0",
     "rxjs": "~7.8.0",
+    "three": "^0.184.0",
     "tslib": "^2.3.0"
   },
   "devDependencies": {
@@ -60,6 +61,7 @@
     "@angular/cli": "^20.0.1",
     "@angular/compiler-cli": "^20.0.0",
     "@types/jasmine": "~5.1.0",
+    "@types/three": "^0.184.1",
     "concurrently": "^9.2.1",
     "electron": "^37.2.5",
     "electron-builder": "^26.0.12",

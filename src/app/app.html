@@ -1,20 +1,22 @@
-<main>
-  <div class="container">
-    <div class="hero-actions">
-      <button type="button" class="theme-toggle" (click)="toggleTheme()">
-        {{ isDarkTheme ? 'Tema claro' : 'Tema escuro' }}
-      </button>
-    </div>
-    <h1>📚 Histórico de Cursos</h1>
-    <p>Acompanhe e gerencie o seu progresso acadêmico de forma simples e intuitiva.</p>
-
-    <div class="image-box">
-     <img src="https://cdn.asp.dev.br/imagens/logos/front-history-course.png" alt="Histórico de Cursos">
+<main class="app-shell">
+  <header class="app-header">
+    <canvas #heroCanvas class="hero-canvas" aria-hidden="true"></canvas>
+    <div class="brand">
+      <img src="front-history-course.svg" alt="History Course">
+      <div>
+        <h1>Historico de Cursos</h1>
+        <p>Organize a fila, abra cursos baixados e acompanhe seu progresso.</p>
+      </div>
     </div>
 
-    <div class="content">
-      <router-outlet></router-outlet>
-      <h3 id="version">v{{version}}</h3>
-    </div>
-  </div>
+    <button type="button" class="theme-toggle" (click)="toggleTheme()">
+      {{ isDarkTheme ? 'Tema claro' : 'Tema escuro' }}
+    </button>
+  </header>
+
+  <section class="content">
+    <router-outlet></router-outlet>
+  </section>
+
+  <span id="version">v{{version}}</span>
 </main>

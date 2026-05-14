@@ -1,12 +1,13 @@
 import { Component, OnDestroy, OnInit, output, signal } from '@angular/core';
+import { MatIconModule } from '@angular/material/icon';
 import { Subscription } from 'rxjs';
-import { CardCourseType } from '../../domain/types/CardHouse';
+import { CardCourseType, QueuedCourseType } from '../../domain/types/CardHouse';
 import { CourseStorageService } from '../../services/course-storage.service';
 import { ApiService } from '../../services/api.service';
 
 @Component({
   selector: 'app-card-course',
-  imports: [],
+  imports: [MatIconModule],
   templateUrl: './card-course.html',
   styleUrl: './card-course.css',
 })
@@ -14,7 +15,8 @@ export class CardCourse implements OnInit, OnDestroy {
   clickOnCourse = output<CardCourseType>();
 
   items = signal<CardCourseType[]>([]);
-  private subscription?: Subscription;
+  queuedCourses = signal<QueuedCourseType[]>([]);
+  private readonly subscriptions = new Subscription();
 
   constructor(
     private readonly courseStorageService: CourseStorageService,
@@ -22,16 +24,24 @@ export class CardCourse implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    this.subscription = this.courseStorageService.courses$.subscribe((items) => {
-      this.items.set(items);
-    });
+    this.subscriptions.add(
+      this.courseStorageService.courses$.subscribe((items) => {
+        this.items.set(items);
+      })
+    );
+
+    this.subscriptions.add(
+      this.courseStorageService.queuedCourses$.subscribe((items) => {
+        this.queuedCourses.set(items);
+      })
+    );
 
     this.courseStorageService.refreshCourses();
     this.syncCoursesFromFolderState();
   }
 
   ngOnDestroy(): void {
-    this.subscription?.unsubscribe();
+    this.subscriptions.unsubscribe();
   }
 
   emitClick(event: CardCourseType): void {
@@ -40,6 +50,34 @@ export class CardCourse implements OnInit, OnDestroy {
 
   deleteCourse(event: CardCourseType): void {
     this.courseStorageService.deleteCourse(event.path);
+  }
+
+  addQueuedCourse(nameInput: HTMLInputElement, pathInput: HTMLInputElement): void {
+    this.courseStorageService.addQueuedCourse(nameInput.value, pathInput.value);
+    nameInput.value = '';
+    pathInput.value = '';
+  }
+
+  updateQueuedCoursePath(course: QueuedCourseType, path: string): void {
+    this.courseStorageService.updateQueuedCoursePath(course.id, path);
+  }
+
+  deleteQueuedCourse(course: QueuedCourseType): void {
+    this.courseStorageService.deleteQueuedCourse(course.id);
+  }
+
+  startQueuedCourse(course: QueuedCourseType): void {
+    if (!course.path) {
+      return;
+    }
+
+    this.clickOnCourse.emit({
+      path: course.path,
+      name: course.name,
+      isCompleted: false,
+      bannerImage: null,
+      bannerUrl: null,
+    });
   }
 
   uploadBanner(event: Event, course: CardCourseType): void {
@@ -92,6 +130,18 @@ export class CardCourse implements OnInit, OnDestroy {
 
   trackByPath(_: number, item: CardCourseType): string {
     return item.path;
+  }
+
+  trackByQueuedCourse(_: number, item: QueuedCourseType): string {
+    return item.id;
+  }
+
+  get inProgressCourses(): CardCourseType[] {
+    return this.items().filter((item) => !item.isCompleted);
+  }
+
+  get completedCourses(): CardCourseType[] {
+    return this.items().filter((item) => item.isCompleted);
   }
 
   private readFileAsDataUrl(file: File): Promise<string> {

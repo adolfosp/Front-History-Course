@@ -5,7 +5,8 @@ export type AppTheme = 'light' | 'dark';
 @Injectable({ providedIn: 'root' })
 export class ThemeService {
   private readonly storageKey = 'history-course:theme';
-  private currentTheme: AppTheme = 'light';
+  private readonly fallbackTheme: AppTheme = 'dark';
+  private currentTheme: AppTheme = this.fallbackTheme;
 
   constructor() {
     this.currentTheme = this.getStoredTheme();
@@ -34,11 +35,15 @@ export class ThemeService {
 
   private getStoredTheme(): AppTheme {
     if (typeof localStorage === 'undefined') {
-      return 'light';
+      return this.fallbackTheme;
     }
 
     const storedTheme = localStorage.getItem(this.storageKey);
-    return storedTheme === 'dark' ? 'dark' : 'light';
+    if (storedTheme === 'light' || storedTheme === 'dark') {
+      return storedTheme;
+    }
+
+    return this.fallbackTheme;
   }
 
   private applyTheme(theme: AppTheme): void {

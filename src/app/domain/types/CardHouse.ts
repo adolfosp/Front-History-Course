@@ -5,3 +5,9 @@ export type CardCourseType = {
   bannerImage?: string | null;
   bannerUrl?: string | null;
 };
+
+export type QueuedCourseType = {
+  id: string;
+  name: string;
+  path: string;
+};

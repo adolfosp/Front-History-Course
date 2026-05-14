@@ -57,7 +57,23 @@ function normalizeHistory(value: unknown): ICourseProgress['history'] {
   );
 }
 
-export function normalizeCourseProgress(raw: unknown): ICourseProgress {
+function isVideoProgressLike(value: unknown): boolean {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return false;
+  }
+
+  const progress = value as Record<string, unknown>;
+
+  return (
+    typeof progress['watched'] === 'boolean' ||
+    typeof progress['lastWatched'] === 'boolean' ||
+    typeof progress['currentTime'] === 'number' ||
+    typeof progress['completedAt'] === 'string' ||
+    typeof progress['watchCount'] === 'number'
+  );
+}
+
+function parseStoredValue(raw: unknown): unknown {
   let parsed = raw;
 
   if (typeof parsed === 'string') {
@@ -67,6 +83,28 @@ export function normalizeCourseProgress(raw: unknown): ICourseProgress {
       parsed = parseJson(parsed);
     }
   }
+
+  return parsed;
+}
+
+export function isStoredCourseProgress(raw: unknown): boolean {
+  const parsed = parseStoredValue(raw);
+
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    return false;
+  }
+
+  const candidate = parsed as Record<string, unknown>;
+
+  if ('history' in candidate || 'bannerImage' in candidate) {
+    return true;
+  }
+
+  return Object.values(candidate).some(isVideoProgressLike);
+}
+
+export function normalizeCourseProgress(raw: unknown): ICourseProgress {
+  const parsed = parseStoredValue(raw);
 
   if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
     return {

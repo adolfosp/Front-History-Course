@@ -1,61 +1,198 @@
-<h2>Cursos salvos</h2>
-@if (items().length) {
-<section class="cards">
-  @for (item of items(); track trackByPath($index, item)) {
-  <article
-    class="card"
-    [class.card--completed]="item.isCompleted"
-    [style.background-image]="getCardBackground(item)">
-    <div class="card__overlay"></div>
-    <button type="button" class="close-btn" (click)="deleteCourse(item)">×</button>
+<section class="library-shell">
+  <div class="library-heading">
+    <div>
+      <span class="eyebrow">Biblioteca</span>
+      <h2>Seus cursos</h2>
+    </div>
+    <span class="library-count">{{ items().length }} salvos</span>
+  </div>
 
-    <div class="card__content">
-      <div class="card__header">
-        <div class="card__badges">
-          <span class="card__badge">
-            {{ item.bannerImage ? 'Com banner' : 'Sem banner' }}
-          </span>
-          @if (item.isCompleted) {
-          <span class="card__badge card__badge--completed">Concluido</span>
-          }
-        </div>
+  <form
+    class="queue-form"
+    (submit)="$event.preventDefault(); addQueuedCourse(queueName, queuePath)">
+    <div class="queue-form__field queue-form__field--name">
+      <label for="queue-name">Curso para fazer depois</label>
+      <input
+        #queueName
+        id="queue-name"
+        type="text"
+        placeholder="Nome do curso" />
+    </div>
+    <div class="queue-form__field">
+      <label for="queue-path">Caminho local opcional</label>
+      <input
+        #queuePath
+        id="queue-path"
+        type="text"
+        placeholder="Cole quando baixar" />
+    </div>
+    <button type="submit" class="icon-action icon-action--primary">
+      <mat-icon>playlist_add</mat-icon>
+      Enfileirar
+    </button>
+  </form>
+
+  <div class="library-grid">
+    <section class="course-column">
+      <div class="section-title">
+        <h3>Em andamento</h3>
+        <span>{{ inProgressCourses.length }}</span>
       </div>
 
-      <button type="button" (click)="emitClick(item)" class="card__title">
-        {{ item.name }}
-      </button>
+      @if (inProgressCourses.length) {
+      <div class="cards">
+        @for (item of inProgressCourses; track trackByPath($index, item)) {
+        <article
+          class="card"
+          [style.background-image]="getCardBackground(item)">
+          <div class="card__overlay"></div>
+          <button
+            type="button"
+            class="icon-only close-btn"
+            aria-label="Remover curso"
+            (click)="deleteCourse(item)">
+            <mat-icon>close</mat-icon>
+          </button>
 
-      <p class="card__path">{{ item.path }}</p>
+          <div class="card__content">
+            <span class="card__badge">
+              {{ item.bannerImage ? 'Com capa' : 'Sem capa' }}
+            </span>
 
-      <div class="card__actions">
-        <input
-          #bannerInput
-          type="file"
-          accept="image/*"
-          class="visually-hidden"
-          (change)="uploadBanner($event, item)" />
-        <button
-          type="button"
-          class="action-btn action-btn--primary"
-          (click)="bannerInput.click()">
-          {{ item.bannerImage ? 'Trocar banner' : 'Adicionar banner' }}
-        </button>
+            <button type="button" (click)="emitClick(item)" class="card__title">
+              {{ item.name }}
+            </button>
 
-        @if (item.bannerImage) {
-        <button
-          type="button"
-          class="action-btn action-btn--ghost"
-          (click)="removeBanner(item)">
-          Remover banner
-        </button>
+            <p class="card__path">{{ item.path }}</p>
+
+            <div class="card__actions">
+              <input
+                #bannerInput
+                type="file"
+                accept="image/*"
+                class="visually-hidden"
+                (change)="uploadBanner($event, item)" />
+              <button
+                type="button"
+                class="icon-action"
+                (click)="bannerInput.click()">
+                <mat-icon>image</mat-icon>
+                {{ item.bannerImage ? 'Trocar capa' : 'Adicionar capa' }}
+              </button>
+
+              @if (item.bannerImage) {
+              <button
+                type="button"
+                class="icon-action icon-action--ghost"
+                (click)="removeBanner(item)">
+                <mat-icon>hide_image</mat-icon>
+                Remover
+              </button>
+              }
+            </div>
+          </div>
+        </article>
         }
       </div>
+      } @else {
+      <div class="empty empty--compact">
+        <mat-icon>school</mat-icon>
+        <p>Nenhum curso em andamento.</p>
+      </div>
+      }
+    </section>
+
+    <section class="course-column">
+      <div class="section-title">
+        <h3>Fila</h3>
+        <span>{{ queuedCourses().length }}</span>
+      </div>
+
+      @if (queuedCourses().length) {
+      <div class="queue-list">
+        @for (course of queuedCourses(); track trackByQueuedCourse($index, course)) {
+        <article class="queue-item">
+          <div class="queue-item__main">
+            <span class="queue-item__mark">
+              <mat-icon>schedule</mat-icon>
+            </span>
+            <div>
+              <h4>{{ course.name }}</h4>
+              <p>
+                {{ course.path || 'Sem caminho ainda' }}
+              </p>
+            </div>
+          </div>
+
+          <div class="queue-item__path">
+            <input
+              type="text"
+              [value]="course.path"
+              placeholder="Adicionar caminho local"
+              (change)="updateQueuedCoursePath(course, $any($event.target).value)" />
+          </div>
+
+          <div class="queue-item__actions">
+            <button
+              type="button"
+              class="icon-only"
+              aria-label="Abrir curso"
+              [disabled]="!course.path"
+              (click)="startQueuedCourse(course)">
+              <mat-icon>play_arrow</mat-icon>
+            </button>
+            <button
+              type="button"
+              class="icon-only icon-only--danger"
+              aria-label="Remover da fila"
+              (click)="deleteQueuedCourse(course)">
+              <mat-icon>delete</mat-icon>
+            </button>
+          </div>
+        </article>
+        }
+      </div>
+      } @else {
+      <div class="empty empty--compact">
+        <mat-icon>playlist_add_check</mat-icon>
+        <p>Adicione cursos para lembrar depois.</p>
+      </div>
+      }
+    </section>
+  </div>
+
+  <section class="completed-section">
+    <div class="section-title">
+      <h3>Concluidos</h3>
+      <span>{{ completedCourses.length }}</span>
     </div>
-  </article>
-  }
+
+    @if (completedCourses.length) {
+    <div class="completed-list">
+      @for (item of completedCourses; track trackByPath($index, item)) {
+      <article
+        class="completed-card"
+        [style.background-image]="getCardBackground(item)">
+        <div class="completed-card__overlay"></div>
+        <button type="button" class="completed-card__title" (click)="emitClick(item)">
+          <mat-icon>check_circle</mat-icon>
+          {{ item.name }}
+        </button>
+        <button
+          type="button"
+          class="icon-only close-btn"
+          aria-label="Remover curso"
+          (click)="deleteCourse(item)">
+          <mat-icon>close</mat-icon>
+        </button>
+      </article>
+      }
+    </div>
+    } @else {
+    <div class="empty empty--inline">
+      <mat-icon>workspace_premium</mat-icon>
+      <p>Os cursos finalizados aparecem aqui, separados dos ativos.</p>
+    </div>
+    }
+  </section>
 </section>
-} @else {
-<div class="empty">
-  <p>Carregue um curso para começar a gerenciar os banners.</p>
-</div>
-}
