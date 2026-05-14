@@ -108,6 +108,8 @@ export class TreeTable implements OnInit, OnDestroy {
   private currentVideoNode: TodoItemFlatNode | null = null;
   private playbackCompletionRecorded = false;
   private readonly completionThreshold = 0.95;
+  private readonly playbackAutosaveIntervalMs = 15_000;
+  private lastPlaybackAutosaveAt = 0;
   pausedTimes: { [key: string]: string } = {};
 
   constructor(
@@ -162,6 +164,7 @@ export class TreeTable implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.saveCurrentVideoPlaybackProgress();
     this.subscriptions.unsubscribe();
   }
 
@@ -204,14 +207,7 @@ export class TreeTable implements OnInit, OnDestroy {
       return;
     }
 
-    const historyUpdated = this.historyService.updateNodePlaybackProgress({
-      node: this.currentVideoNode,
-      path: this.pathToCourse,
-      treeControl: this.treeControl,
-      currentTime: videoElement.currentTime,
-    });
-
-    this.persistCourseProgress(historyUpdated);
+    this.saveCurrentVideoPlaybackProgress(videoElement.currentTime);
   }
 
   onVideoEnded(): void {
@@ -282,7 +278,24 @@ export class TreeTable implements OnInit, OnDestroy {
 
     if (this.shouldMarkVideoAsCompleted(videoElement)) {
       this.completeCurrentVideoPlayback();
+      return;
     }
+
+    this.autosaveVideoPlaybackProgress(videoElement);
+  }
+
+  private autosaveVideoPlaybackProgress(videoElement: HTMLVideoElement): void {
+    if (!this.currentVideoNode || !this.pathToCourse || videoElement.paused) {
+      return;
+    }
+
+    const now = Date.now();
+    if (now - this.lastPlaybackAutosaveAt < this.playbackAutosaveIntervalMs) {
+      return;
+    }
+
+    this.saveCurrentVideoPlaybackProgress(videoElement.currentTime);
+    this.lastPlaybackAutosaveAt = now;
   }
 
   public form: FormGroup = this.fb.group({
@@ -519,6 +532,7 @@ export class TreeTable implements OnInit, OnDestroy {
     this.videoFileName = node.item;
     this.currentVideoNode = node;
     this.playbackCompletionRecorded = false;
+    this.lastPlaybackAutosaveAt = Date.now();
 
     const history = this.courseStorageService.getCourseProgress(
       this.pathToCourse
@@ -550,6 +564,7 @@ export class TreeTable implements OnInit, OnDestroy {
     this.videoFileName = '';
     this.currentVideoNode = null;
     this.playbackCompletionRecorded = false;
+    this.lastPlaybackAutosaveAt = 0;
   }
 
   getSelectedCourseBackground(): string {
@@ -668,6 +683,7 @@ export class TreeTable implements OnInit, OnDestroy {
     };
     this.currentVideoNode = null;
     this.playbackCompletionRecorded = false;
+    this.lastPlaybackAutosaveAt = 0;
   }
 
   private completeCurrentVideoPlayback(): void {
@@ -690,6 +706,24 @@ export class TreeTable implements OnInit, OnDestroy {
 
     this.persistCourseProgress(historyUpdated);
     this.syncAncestors(this.currentVideoNode);
+  }
+
+  private saveCurrentVideoPlaybackProgress(currentTime?: number): void {
+    if (!this.currentVideoNode || !this.pathToCourse) {
+      return;
+    }
+
+    const playbackTime =
+      currentTime ?? this.videoPlayer?.nativeElement?.currentTime ?? 0;
+
+    const historyUpdated = this.historyService.updateNodePlaybackProgress({
+      node: this.currentVideoNode,
+      path: this.pathToCourse,
+      treeControl: this.treeControl,
+      currentTime: playbackTime,
+    });
+
+    this.persistCourseProgress(historyUpdated);
   }
 
   private syncAncestors(node: TodoItemFlatNode): void {
