@@ -22,7 +22,10 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { TodoItemNode } from '../domain/TodoItemNode';
 import { TodoItemFlatNode } from '../domain/TodoItemFlatNode';
-import { ICourseProgress } from '../domain/interfaces/ICourseProgress';
+import {
+  CourseStatus,
+  ICourseProgress,
+} from '../domain/interfaces/ICourseProgress';
 import { ApiService } from '../services/api.service';
 import {
   FormBuilder,
@@ -396,6 +399,68 @@ export class TreeTable implements OnInit, OnDestroy {
     );
   }
 
+  markSelectedCourseAsCompleted(): void {
+    if (!this.pathToCourse || this.isLoadingCourse) {
+      return;
+    }
+
+    const updatedProgress = this.updateSelectedCourseStatus('completed');
+    const now = new Date().toISOString();
+    const history = { ...updatedProgress.history };
+    let lastLeafPath = '';
+
+    this.checklistSelection.select(...this.treeControl.dataNodes);
+
+    for (const node of this.treeControl.dataNodes) {
+      const nodePath = PathService.getFullPath({
+        node,
+        treeControl: this.treeControl,
+      });
+      const existing = history[nodePath];
+
+      history[nodePath] = {
+        ...existing,
+        watched: true,
+        currentTime: 0,
+        completedAt: node.expandable ? existing?.completedAt ?? null : existing?.completedAt ?? now,
+        watchCount: existing?.watchCount ?? 0,
+      };
+
+      if (!node.expandable) {
+        lastLeafPath = nodePath;
+      }
+    }
+
+    if (lastLeafPath && history[lastLeafPath]) {
+      history[lastLeafPath].lastWatched = true;
+    }
+
+    this.persistCourseProgress({
+      ...updatedProgress,
+      history,
+    });
+
+    this.toast.success('Curso marcado como concluido.', 'Concluido', 3000);
+  }
+
+  abandonSelectedCourse(): void {
+    if (!this.pathToCourse || this.isLoadingCourse) {
+      return;
+    }
+
+    this.persistCourseProgress(this.updateSelectedCourseStatus('abandoned'));
+    this.toast.success('Curso marcado como desistido.', 'Desistido', 3000);
+  }
+
+  moveSelectedCourseToProgress(): void {
+    if (!this.pathToCourse || this.isLoadingCourse) {
+      return;
+    }
+
+    this.persistCourseProgress(this.updateSelectedCourseStatus('in-progress'));
+    this.toast.success('Curso voltou para andamento.', 'Em andamento', 3000);
+  }
+
   isExpandable = (node: TodoItemFlatNode) => {
     return node.expandable;
   };
@@ -618,7 +683,15 @@ export class TreeTable implements OnInit, OnDestroy {
 
     this.apiService.getCourseProgress(coursePath).subscribe({
       next: (progress) => {
-        this.courseStorageService.saveCourseProgress(coursePath, progress);
+        const currentProgress =
+          this.courseStorageService.getCourseProgress(coursePath);
+        this.courseStorageService.saveCourseProgress(coursePath, {
+          ...progress,
+          courseStatus:
+            currentProgress.courseStatus !== 'in-progress'
+              ? currentProgress.courseStatus
+              : progress.courseStatus,
+        });
         this.syncSelectedCourse(coursePath);
         this.initializeCourseTree(coursePath);
       },
@@ -839,6 +912,31 @@ export class TreeTable implements OnInit, OnDestroy {
     this.syncSelectedCourse(this.pathToCourse);
   }
 
+  private updateSelectedCourseStatus(status: CourseStatus): ICourseProgress {
+    const coursePath = this.pathToCourse;
+    const courseProgress = this.courseStorageService.getCourseProgress(coursePath);
+    const courseName = getCourseNameFromPath(coursePath);
+    const courseEntry = courseProgress.history[courseName];
+    const isCompleted = status === 'completed';
+
+    return {
+      ...courseProgress,
+      courseStatus: status,
+      history: {
+        ...courseProgress.history,
+        [courseName]: {
+          ...courseEntry,
+          watched: isCompleted,
+          currentTime: 0,
+          completedAt: isCompleted
+            ? courseEntry?.completedAt ?? new Date().toISOString()
+            : null,
+          watchCount: courseEntry?.watchCount ?? 0,
+        },
+      },
+    };
+  }
+
   private readBooleanPreference(key: string, fallback: boolean): boolean {
     const rawValue = localStorage.getItem(key);
 
@@ -860,7 +958,16 @@ export class TreeTable implements OnInit, OnDestroy {
     this.selectedCourse = {
       path: coursePath,
       name: courseName,
-      isCompleted: courseProgress.history[courseName]?.watched === true,
+      status:
+        courseProgress.courseStatus === 'in-progress' &&
+        courseProgress.history[courseName]?.watched === true
+          ? 'completed'
+          : courseProgress.courseStatus,
+      isCompleted:
+        courseProgress.courseStatus === 'completed' ||
+        (courseProgress.courseStatus === 'in-progress' &&
+          courseProgress.history[courseName]?.watched === true),
+      isAbandoned: courseProgress.courseStatus === 'abandoned',
       progress: {
         watchedVideos: this.courseStats.watchedVideos,
         knownVideos: this.courseStats.totalVideos,

@@ -410,6 +410,13 @@ input {
     inset 0 0 0 1px rgba(34, 197, 94, 0.08);
 }
 
+.completed-card--abandoned {
+  border-color: rgba(244, 63, 94, 0.42);
+  box-shadow:
+    var(--panel-shadow),
+    inset 0 0 0 1px rgba(244, 63, 94, 0.08);
+}
+
 .completed-card__title {
   position: relative;
   z-index: 1;
@@ -429,6 +436,20 @@ input {
 .completed-card__title mat-icon {
   flex: 0 0 auto;
   color: #86efac;
+}
+
+.completed-card--abandoned .completed-card__title mat-icon {
+  color: #fda4af;
+}
+
+.completed-card__progress-btn {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  z-index: 2;
+  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(15, 23, 42, 0.32);
+  color: #f8fafc;
 }
 
 .empty {

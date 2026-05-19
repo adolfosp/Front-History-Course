@@ -208,6 +208,13 @@
           (click)="deleteCourse(item)">
           <mat-icon>close</mat-icon>
         </button>
+        <button
+          type="button"
+          class="icon-only completed-card__progress-btn"
+          aria-label="Voltar para andamento"
+          (click)="moveCourseToProgress(item)">
+          <mat-icon>restart_alt</mat-icon>
+        </button>
       </article>
       }
     </div>
@@ -215,6 +222,48 @@
     <div class="empty empty--inline">
       <mat-icon>workspace_premium</mat-icon>
       <p>Os cursos finalizados aparecem aqui, separados dos ativos.</p>
+    </div>
+    }
+  </section>
+
+  <section class="completed-section">
+    <div class="section-title">
+      <h3>Desistidos</h3>
+      <span>{{ abandonedCourses.length }}</span>
+    </div>
+
+    @if (abandonedCourses.length) {
+    <div class="completed-list">
+      @for (item of abandonedCourses; track trackByPath($index, item)) {
+      <article
+        class="completed-card completed-card--abandoned"
+        [style.background-image]="getCardBackground(item)">
+        <div class="completed-card__overlay"></div>
+        <button type="button" class="completed-card__title" (click)="emitClick(item)">
+          <mat-icon>do_not_disturb_on</mat-icon>
+          {{ item.name }}
+        </button>
+        <button
+          type="button"
+          class="icon-only close-btn"
+          aria-label="Remover curso"
+          (click)="deleteCourse(item)">
+          <mat-icon>close</mat-icon>
+        </button>
+        <button
+          type="button"
+          class="icon-only completed-card__progress-btn"
+          aria-label="Voltar para andamento"
+          (click)="moveCourseToProgress(item)">
+          <mat-icon>restart_alt</mat-icon>
+        </button>
+      </article>
+      }
+    </div>
+    } @else {
+    <div class="empty empty--inline">
+      <mat-icon>do_not_disturb_on</mat-icon>
+      <p>Cursos que voce desistir aparecem aqui.</p>
     </div>
     }
   </section>

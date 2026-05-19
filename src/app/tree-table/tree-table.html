@@ -57,6 +57,46 @@
           Auto play: {{ autoPlayNext ? 'Ligado' : 'Desligado' }}
         </button>
       </div>
+      <div class="selected-course-banner__actions">
+        @if (selectedCourse.status !== 'completed') {
+        <button
+          type="button"
+          class="selected-course-banner__action selected-course-banner__action--success"
+          [disabled]="isLoadingCourse"
+          (click)="markSelectedCourseAsCompleted()">
+          <mat-icon>check_circle</mat-icon>
+          Concluir curso
+        </button>
+        } @else {
+        <button
+          type="button"
+          class="selected-course-banner__action"
+          [disabled]="isLoadingCourse"
+          (click)="moveSelectedCourseToProgress()">
+          <mat-icon>restart_alt</mat-icon>
+          Voltar para andamento
+        </button>
+        }
+        @if (selectedCourse.status !== 'abandoned') {
+        <button
+          type="button"
+          class="selected-course-banner__action selected-course-banner__action--danger"
+          [disabled]="isLoadingCourse"
+          (click)="abandonSelectedCourse()">
+          <mat-icon>do_not_disturb_on</mat-icon>
+          Desistir do curso
+        </button>
+        } @else {
+        <button
+          type="button"
+          class="selected-course-banner__action"
+          [disabled]="isLoadingCourse"
+          (click)="moveSelectedCourseToProgress()">
+          <mat-icon>restart_alt</mat-icon>
+          Retomar curso
+        </button>
+        }
+      </div>
       <div class="selected-course-banner__progress">
         <div
           class="selected-course-banner__progress-fill"

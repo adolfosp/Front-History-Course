@@ -74,7 +74,9 @@ export class CardCourse implements OnInit, OnDestroy {
     this.clickOnCourse.emit({
       path: course.path,
       name: course.name,
+      status: 'in-progress',
       isCompleted: false,
+      isAbandoned: false,
       progress: {
         watchedVideos: 0,
         knownVideos: 0,
@@ -125,6 +127,33 @@ export class CardCourse implements OnInit, OnDestroy {
     });
   }
 
+  moveCourseToProgress(course: CardCourseType): void {
+    const progress = this.courseStorageService.getCourseProgress(course.path);
+    const updatedProgress = {
+      ...progress,
+      courseStatus: 'in-progress' as const,
+      history: {
+        ...progress.history,
+        [course.name]: {
+          ...progress.history[course.name],
+          watched: false,
+          currentTime: 0,
+        },
+      },
+    };
+
+    this.courseStorageService.saveCourseProgress(course.path, updatedProgress);
+    this.apiService.updateCourseProgressOnFolder(course.path, updatedProgress)
+      .subscribe({
+        next: (serverProgress) => {
+          this.courseStorageService.saveCourseProgress(course.path, serverProgress);
+        },
+        error: (error) => {
+          console.error('Erro ao mover curso para andamento:', error);
+        },
+      });
+  }
+
   getCardBackground(course: CardCourseType): string {
     if (!course.bannerUrl) {
       return 'linear-gradient(135deg, #f8fafc 0%, #dbeafe 100%)';
@@ -142,11 +171,15 @@ export class CardCourse implements OnInit, OnDestroy {
   }
 
   get inProgressCourses(): CardCourseType[] {
-    return this.items().filter((item) => !item.isCompleted);
+    return this.items().filter((item) => item.status === 'in-progress');
   }
 
   get completedCourses(): CardCourseType[] {
-    return this.items().filter((item) => item.isCompleted);
+    return this.items().filter((item) => item.status === 'completed');
+  }
+
+  get abandonedCourses(): CardCourseType[] {
+    return this.items().filter((item) => item.status === 'abandoned');
   }
 
   private readFileAsDataUrl(file: File): Promise<string> {
@@ -179,6 +212,10 @@ export class CardCourse implements OnInit, OnDestroy {
           );
           const mergedProgress = {
             ...progress,
+            courseStatus:
+              currentProgress.courseStatus !== 'in-progress'
+                ? currentProgress.courseStatus
+                : progress.courseStatus,
             totalVideos: Math.max(
               progress.totalVideos ?? 0,
               currentProgress.totalVideos ?? 0

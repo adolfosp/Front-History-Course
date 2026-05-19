@@ -195,6 +195,13 @@
   margin: 14px 0 10px;
 }
 
+.selected-course-banner__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-bottom: 12px;
+}
+
 .selected-course-banner__stat,
 .selected-course-banner__toggle {
   border-radius: 999px;
@@ -203,6 +210,45 @@
   color: #f8fafc;
   border: 1px solid rgba(255, 255, 255, 0.16);
   font-size: 0.85rem;
+}
+
+.selected-course-banner__action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 40px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 8px;
+  padding: 0 0.9rem;
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.selected-course-banner__action mat-icon {
+  font-size: 20px;
+  width: 20px;
+  height: 20px;
+}
+
+.selected-course-banner__action:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.selected-course-banner__action--success {
+  border-color: rgba(134, 239, 172, 0.48);
+  background: rgba(22, 163, 74, 0.22);
+}
+
+.selected-course-banner__action--danger {
+  border-color: rgba(253, 164, 175, 0.48);
+  background: rgba(225, 29, 72, 0.2);
+}
+
+.selected-course-banner__action:active:not(:disabled) {
+  transform: translateY(1px) scale(0.98);
 }
 
 .selected-course-banner__toggle {

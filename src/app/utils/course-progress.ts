@@ -1,5 +1,8 @@
 import { environment } from '../../environments/environment';
-import { ICourseProgress } from '../domain/interfaces/ICourseProgress';
+import {
+  CourseStatus,
+  ICourseProgress,
+} from '../domain/interfaces/ICourseProgress';
 import { IVideoProgress } from '../domain/interfaces/IVideoProgress';
 
 function parseJson(raw: string): unknown {
@@ -57,6 +60,12 @@ function normalizeHistory(value: unknown): ICourseProgress['history'] {
   );
 }
 
+function normalizeCourseStatus(value: unknown): CourseStatus {
+  return value === 'completed' || value === 'abandoned'
+    ? value
+    : 'in-progress';
+}
+
 function isVideoProgressLike(value: unknown): boolean {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     return false;
@@ -110,6 +119,7 @@ export function normalizeCourseProgress(raw: unknown): ICourseProgress {
     return {
       bannerImage: null,
       totalVideos: 0,
+      courseStatus: 'in-progress',
       history: {},
     };
   }
@@ -129,6 +139,7 @@ export function normalizeCourseProgress(raw: unknown): ICourseProgress {
         candidate['totalVideos'] >= 0
           ? candidate['totalVideos']
           : 0,
+      courseStatus: normalizeCourseStatus(candidate['courseStatus']),
       history: normalizeHistory(candidate['history']),
     };
   }
@@ -136,6 +147,7 @@ export function normalizeCourseProgress(raw: unknown): ICourseProgress {
   return {
     bannerImage: null,
     totalVideos: 0,
+    courseStatus: 'in-progress',
     history: normalizeHistory(candidate),
   };
 }
@@ -148,6 +160,7 @@ export function serializeCourseProgress(progress: ICourseProgress): string {
       Number.isFinite(progress.totalVideos)
         ? progress.totalVideos
         : 0,
+    courseStatus: normalizeCourseStatus(progress.courseStatus),
     history: progress.history ?? {},
   });
 }

@@ -63,9 +63,12 @@ type VideoProgress = {
   watchCount?: number;
 };
 
+type CourseStatus = 'in-progress' | 'completed' | 'abandoned';
+
 type CourseProgress = {
   bannerImage: string | null;
   totalVideos: number;
+  courseStatus: CourseStatus;
   history: Record<string, VideoProgress>;
 };
 
@@ -149,6 +152,12 @@ function normalizeHistory(value: unknown): CourseProgress['history'] {
   );
 }
 
+function normalizeCourseStatus(value: unknown): CourseStatus {
+  return value === 'completed' || value === 'abandoned'
+    ? value
+    : 'in-progress';
+}
+
 function normalizeCourseProgress(value: unknown): CourseProgress {
   let parsed = value;
 
@@ -164,6 +173,7 @@ function normalizeCourseProgress(value: unknown): CourseProgress {
     return {
       bannerImage: null,
       totalVideos: 0,
+      courseStatus: 'in-progress',
       history: {},
     };
   }
@@ -182,6 +192,7 @@ function normalizeCourseProgress(value: unknown): CourseProgress {
         candidate.totalVideos >= 0
           ? candidate.totalVideos
           : 0,
+      courseStatus: normalizeCourseStatus(candidate.courseStatus),
       history: normalizeHistory(candidate.history),
     };
   }
@@ -189,6 +200,7 @@ function normalizeCourseProgress(value: unknown): CourseProgress {
   return {
     bannerImage: null,
     totalVideos: 0,
+    courseStatus: 'in-progress',
     history: normalizeHistory(candidate),
   };
 }
@@ -204,6 +216,7 @@ function readCourseProgressFile(coursePath: string): CourseProgress {
     return {
       bannerImage: null,
       totalVideos: 0,
+      courseStatus: 'in-progress',
       history: {},
     };
   }
@@ -214,6 +227,7 @@ function readCourseProgressFile(coursePath: string): CourseProgress {
     return {
       bannerImage: null,
       totalVideos: 0,
+      courseStatus: 'in-progress',
       history: {},
     };
   }

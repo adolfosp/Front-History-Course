@@ -1,7 +1,10 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
 import { CardCourseType, QueuedCourseType } from '../domain/types/CardHouse';
-import { ICourseProgress } from '../domain/interfaces/ICourseProgress';
+import {
+  CourseStatus,
+  ICourseProgress,
+} from '../domain/interfaces/ICourseProgress';
 import {
   buildCourseBannerUrl,
   getCourseNameFromPath,
@@ -124,12 +127,15 @@ export class CourseStorageService {
 
       const progress = normalizeCourseProgress(storedValue);
       const courseName = getCourseNameFromPath(path);
+      const status = this.getCourseStatus(courseName, progress);
       const courseProgress = this.getCardProgress(progress);
 
       result.push({
         path,
         name: courseName,
-        isCompleted: this.isCourseCompleted(courseName, progress),
+        status,
+        isCompleted: status === 'completed',
+        isAbandoned: status === 'abandoned',
         progress: courseProgress,
         bannerImage: progress.bannerImage,
         bannerUrl: buildCourseBannerUrl(path, progress.bannerImage),
@@ -137,19 +143,40 @@ export class CourseStorageService {
     }
 
     return result.sort((left, right) => {
-      if (left.isCompleted !== right.isCompleted) {
-        return Number(left.isCompleted) - Number(right.isCompleted);
+      if (left.status !== right.status) {
+        return (
+          this.getCourseStatusOrder(left.status) -
+          this.getCourseStatusOrder(right.status)
+        );
       }
 
       return left.name.localeCompare(right.name);
     });
   }
 
-  private isCourseCompleted(
+  private getCourseStatus(
     courseName: string,
     progress: ICourseProgress
-  ): boolean {
-    return progress.history[courseName]?.watched === true;
+  ): CourseStatus {
+    if (progress.courseStatus === 'completed' || progress.courseStatus === 'abandoned') {
+      return progress.courseStatus;
+    }
+
+    return progress.history[courseName]?.watched === true
+      ? 'completed'
+      : 'in-progress';
+  }
+
+  private getCourseStatusOrder(status: CourseStatus): number {
+    if (status === 'in-progress') {
+      return 0;
+    }
+
+    if (status === 'abandoned') {
+      return 1;
+    }
+
+    return 2;
   }
 
   private getCardProgress(progress: ICourseProgress): CardCourseType['progress'] {
