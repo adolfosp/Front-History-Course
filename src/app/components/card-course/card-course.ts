@@ -1,4 +1,9 @@
 import { Component, OnDestroy, OnInit, output, signal } from '@angular/core';
+import {
+  CdkDragDrop,
+  DragDropModule,
+  moveItemInArray,
+} from '@angular/cdk/drag-drop';
 import { MatIconModule } from '@angular/material/icon';
 import { Subscription } from 'rxjs';
 import { CardCourseType, QueuedCourseType } from '../../domain/types/CardHouse';
@@ -7,7 +12,7 @@ import { ApiService } from '../../services/api.service';
 
 @Component({
   selector: 'app-card-course',
-  imports: [MatIconModule],
+  imports: [DragDropModule, MatIconModule],
   templateUrl: './card-course.html',
   styleUrl: './card-course.css',
 })
@@ -64,6 +69,16 @@ export class CardCourse implements OnInit, OnDestroy {
 
   deleteQueuedCourse(course: QueuedCourseType): void {
     this.courseStorageService.deleteQueuedCourse(course.id);
+  }
+
+  dropQueuedCourse(event: CdkDragDrop<QueuedCourseType[]>): void {
+    if (event.previousIndex === event.currentIndex) {
+      return;
+    }
+
+    const queuedCourses = [...this.queuedCourses()];
+    moveItemInArray(queuedCourses, event.previousIndex, event.currentIndex);
+    this.courseStorageService.reorderQueuedCourses(queuedCourses);
   }
 
   startQueuedCourse(course: QueuedCourseType): void {

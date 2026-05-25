@@ -94,6 +94,19 @@ export class CourseStorageService {
     this.saveQueuedCourses(queuedCourses);
   }
 
+  reorderQueuedCourses(courses: QueuedCourseType[]): void {
+    const knownIds = new Set(
+      this.queuedCoursesSubject.value.map((course) => course.id)
+    );
+    const normalizedCourses = courses.filter((course) => knownIds.has(course.id));
+
+    if (normalizedCourses.length !== this.queuedCoursesSubject.value.length) {
+      return;
+    }
+
+    this.saveQueuedCourses(normalizedCourses);
+  }
+
   deleteQueuedCourse(id: string): void {
     this.saveQueuedCourses(
       this.queuedCoursesSubject.value.filter((course) => course.id !== id)

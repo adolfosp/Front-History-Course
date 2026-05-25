@@ -132,13 +132,21 @@
       </div>
 
       @if (queuedCourses().length) {
-      <div class="queue-list">
+      <div
+        class="queue-list"
+        cdkDropList
+        [cdkDropListData]="queuedCourses()"
+        (cdkDropListDropped)="dropQueuedCourse($event)">
         @for (course of queuedCourses(); track trackByQueuedCourse($index, course)) {
-        <article class="queue-item">
+        <article class="queue-item" cdkDrag>
           <div class="queue-item__main">
-            <span class="queue-item__mark">
-              <mat-icon>schedule</mat-icon>
-            </span>
+            <button
+              type="button"
+              class="queue-item__mark"
+              cdkDragHandle
+              aria-label="Arrastar para reordenar">
+              <mat-icon>drag_indicator</mat-icon>
+            </button>
             <div>
               <h4>{{ course.name }}</h4>
               <p>

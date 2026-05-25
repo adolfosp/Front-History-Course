@@ -113,6 +113,7 @@ export class TreeTable implements OnInit, OnDestroy {
   private readonly completionThreshold = 0.95;
   private readonly playbackAutosaveIntervalMs = 15_000;
   private lastPlaybackAutosaveAt = 0;
+  private shouldScrollToCourseAfterLoad = false;
   pausedTimes: { [key: string]: string } = {};
 
   constructor(
@@ -177,6 +178,7 @@ export class TreeTable implements OnInit, OnDestroy {
     }
 
     this.form.patchValue({ caminho: value.path });
+    this.shouldScrollToCourseAfterLoad = true;
     this.loadCourse(value.path);
   }
 
@@ -717,6 +719,7 @@ export class TreeTable implements OnInit, OnDestroy {
   private finishCourseLoading(): void {
     this.isLoadingCourse = false;
     this.loadingCourseName = '';
+    this.scrollToCourseAfterLoad();
   }
 
   private persistCourseProgress(progress: ICourseProgress): void {
@@ -757,6 +760,21 @@ export class TreeTable implements OnInit, OnDestroy {
     this.currentVideoNode = null;
     this.playbackCompletionRecorded = false;
     this.lastPlaybackAutosaveAt = 0;
+  }
+
+  private scrollToCourseAfterLoad(): void {
+    if (!this.shouldScrollToCourseAfterLoad) {
+      return;
+    }
+
+    this.shouldScrollToCourseAfterLoad = false;
+
+    setTimeout(() => {
+      document.getElementById('tree-section')?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      });
+    });
   }
 
   private completeCurrentVideoPlayback(): void {
