@@ -14,6 +14,86 @@ export class HistoryService {
     return this.courseStorageService.ensureCourse(path);
   }
 
+  updateVideoPlaybackProgress({
+    coursePath,
+    videoKey,
+    currentTime,
+  }: {
+    coursePath: string;
+    videoKey: string;
+    currentTime: number;
+  }): ICourseProgress {
+    return this.updateEntries(coursePath, (history) => {
+      const existing = history[videoKey];
+      history[videoKey] = {
+        ...this.createProgressEntry(existing),
+        watched: existing?.watched ?? false,
+        currentTime: Math.max(0, currentTime),
+      };
+    });
+  }
+
+  markVideoAsCompletedByKey({
+    coursePath,
+    videoKey,
+  }: {
+    coursePath: string;
+    videoKey: string;
+  }): ICourseProgress {
+    return this.updateEntries(coursePath, (history) => {
+      this.clearLastWatched(history);
+      const existing = history[videoKey];
+      history[videoKey] = {
+        ...this.createProgressEntry(existing),
+        watched: true,
+        currentTime: 0,
+        completedAt: new Date().toISOString(),
+        watchCount: (existing?.watchCount ?? 0) + 1,
+        lastWatched: true,
+      };
+    });
+  }
+
+  syncAncestorStatusesByKeys({
+    coursePath,
+    videoKey,
+    playlistKeys,
+  }: {
+    coursePath: string;
+    videoKey: string;
+    playlistKeys: string[];
+  }): ICourseProgress {
+    return this.updateEntries(coursePath, (history) => {
+      const segments = videoKey.split('/');
+
+      for (let index = segments.length - 1; index > 0; index--) {
+        const parentKey = segments.slice(0, index).join('/');
+        const childPrefix = `${parentKey}/`;
+        const descendantKeys = playlistKeys.filter((key) =>
+          key.startsWith(childPrefix)
+        );
+        const allWatched =
+          descendantKeys.length > 0 &&
+          descendantKeys.every((key) => history[key]?.watched === true);
+        const existing = history[parentKey];
+
+        if (allWatched) {
+          history[parentKey] = {
+            ...this.createProgressEntry(existing),
+            watched: true,
+            currentTime: 0,
+          };
+        } else if (existing) {
+          history[parentKey] = {
+            ...this.createProgressEntry(existing),
+            watched: false,
+            currentTime: 0,
+          };
+        }
+      }
+    });
+  }
+
   updateNodePlaybackProgress({
     node,
     path,

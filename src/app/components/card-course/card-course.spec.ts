@@ -1,14 +1,21 @@
+import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { CardCourse } from './card-course';
+import { ApiService } from '../../services/api.service';
 
 describe('CardCourse', () => {
   let component: CardCourse;
   let fixture: ComponentFixture<CardCourse>;
 
   beforeEach(async () => {
+    localStorage.clear();
     await TestBed.configureTestingModule({
-      imports: [CardCourse]
+      imports: [CardCourse],
+      providers: [
+        provideZonelessChangeDetection(),
+        { provide: ApiService, useValue: {} },
+      ],
     })
     .compileComponents();
 

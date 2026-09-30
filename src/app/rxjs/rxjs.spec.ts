@@ -1,3 +1,4 @@
+import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { RxjsExample } from './rxjs';
@@ -8,7 +9,8 @@ describe('Rxjs', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [RxjsExample]
+      imports: [RxjsExample],
+      providers: [provideZonelessChangeDetection()],
     })
     .compileComponents();
 

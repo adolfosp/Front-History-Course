@@ -52,6 +52,10 @@ import {
   buildCourseBannerUrl,
   getCourseNameFromPath,
 } from '../utils/course-progress';
+import {
+  VideoPlaylistItem,
+  VideoWindowService,
+} from '../services/video-window.service';
 
 @Component({
   selector: 'app-tree-table',
@@ -121,7 +125,8 @@ export class TreeTable implements OnInit, OnDestroy {
     private cdr: ChangeDetectorRef,
     private toast: NgToastService,
     private historyService: HistoryService,
-    private courseStorageService: CourseStorageService
+    private courseStorageService: CourseStorageService,
+    private videoWindowService: VideoWindowService
   ) {
     this.treeFlattener = new MatTreeFlattener(
       createTransformer(this.flatNodeMap, this.nestedNodeMap),
@@ -163,6 +168,25 @@ export class TreeTable implements OnInit, OnDestroy {
         this.selectedCourse =
           courses.find((course) => course.path === this.selectedCourse?.path) ??
           this.selectedCourse;
+      })
+    );
+
+    this.subscriptions.add(
+      this.videoWindowService.updates$.subscribe((update) => {
+        if (update.coursePath !== this.pathToCourse) {
+          return;
+        }
+
+        this.applyWatchedHistory();
+        this.syncSelectedCourse(update.coursePath);
+
+        if (update.completed) {
+          this.toast.success(
+            `Video "${update.videoKey.split('/').at(-1)}" concluido!`,
+            'Concluido',
+            3000
+          );
+        }
       })
     );
   }
@@ -594,6 +618,37 @@ export class TreeTable implements OnInit, OnDestroy {
   }
 
   public playVideo(node: TodoItemFlatNode): void {
+    if (this.videoWindowService.isAvailable) {
+      const playlist: VideoPlaylistItem[] = this.treeControl.dataNodes
+        .filter((item) => !item.expandable)
+        .map((item) => ({
+          videoKey: item.path,
+          historyKey: PathService.getFullPath({
+            node: item,
+            treeControl: this.treeControl,
+          }),
+          title: item.item,
+          url: `${environment.videoPath}?path=${encodeURIComponent(item.path)}`,
+        }));
+
+      void this.videoWindowService
+        .openPlaylist({
+          coursePath: this.pathToCourse,
+          playlist,
+          startVideoKey: node.path,
+          autoplay: this.autoPlayNext,
+        })
+        .catch((error) => {
+          console.error('Erro ao abrir janela de video:', error);
+          this.toast.danger(
+            'Nao foi possivel abrir a janela de video.',
+            'Erro',
+            3000
+          );
+        });
+      return;
+    }
+
     const encodedPath = encodeURIComponent(node.path);
     this.videoUrl = `${environment.videoPath}?path=${encodedPath}`;
     this.videoFileName = node.item;

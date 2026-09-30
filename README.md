@@ -25,6 +25,7 @@
     <li><a href="#planning-of-versions">Planning of versions</a></li>
     <li><a href="#patterns-and-technologies">Patterns and Technologies</a></li>
     <li><a href="#folder-structure">Folder structure</a></li>
+    <li><a href="#instalação-e-execução">Instalação e execução</a></li>
     <li><a href="#license">License</a></li>
     <li><a href="#contact">Contact</a></li>
   </ol>
@@ -71,6 +72,8 @@ This Angular-based project consumes an API that returns a folder structure conta
 ### Technologies:
 
 * **Angular**: Framework for building the front-end application.
+* **Electron**: Desktop application runtime.
+* **Express**: API used to read courses, stream videos, and save progress.
 * **HTML/CSS**: For styling and structuring the front-end layout.
 
 ### Design Patterns:
@@ -119,15 +122,66 @@ tsconfig.spec.json
 
 ```
 
-## Comandos
+## Instalação e execução
 
-- Para gerar a versão do exe, rode o comando abaixo:
+### Pré-requisitos
+
+* Node.js e npm.
+* Google Chrome para executar ou depurar a versão web pelo VS Code.
+
+### Instalar as dependências
+
+O front-end e o servidor possuem dependências separadas. Na raiz do projeto, execute:
+
+```bash
+npm install
+npm --prefix server install
+```
+
+### Executar no navegador
+
+O comando abaixo inicia o Angular em `http://localhost:4200` e o servidor de desenvolvimento em `http://localhost:4057`:
+
+```bash
+npm run start-all:dev
+```
+
+### Executar Electron e servidor pelo terminal
+
+O Electron carrega o build de produção do Angular, que utiliza a API em `http://localhost:4047`. Inicie o servidor no primeiro terminal:
+
+```bash
+npm --prefix server run start:prod
+```
+
+Em outro terminal, gere o front-end e inicie o Electron:
+
+```bash
+npm run build
+npm run electron
+```
+
+### Executar pelo VS Code
+
+Abra **Run and Debug** (`Ctrl+Shift+D`) e escolha uma das configurações:
+
+* **Electron + Servidor**: gera o front-end e inicia juntos o Electron e a API na porta `4047`.
+* **Electron**: gera e inicia apenas o aplicativo desktop; use esta opção se a API já estiver em execução.
+* **Servidor da API (Electron)**: inicia apenas a API compatível com o build do Electron.
+* **Angular + Servidor (desenvolvimento)**: inicia o Angular no navegador e a API de desenvolvimento.
+* **Testes Angular**: inicia o runner de testes no Chrome.
+
+Ao encerrar a configuração composta **Electron + Servidor**, o VS Code também encerra os dois processos.
+
+### Gerar o instalador
+
+Para gerar o instalador do Windows, execute:
 
 ```bash
 npm run dist
 ```
 
-- O arquivo gerado estará na pasta `/release`
+O arquivo gerado estará na pasta `/release`.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
