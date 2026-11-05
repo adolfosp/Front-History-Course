@@ -34,6 +34,22 @@ function saveBounds(bounds) {
   }
 }
 
+function startEmbeddedApi() {
+  // Em desenvolvimento (ng serve) a API é iniciada separadamente.
+  if (!app.isPackaged && process.env.EMBEDDED_API !== '1') {
+    return;
+  }
+
+  process.env.PORT = process.env.PORT || '4047';
+  process.env.NODE_ENV = process.env.NODE_ENV || 'production';
+
+  try {
+    require('../server/dist/index.js');
+  } catch (error) {
+    console.error('[Electron] Falha ao iniciar a API embutida:', error);
+  }
+}
+
 function createWindow() {
   const win = new BrowserWindow({
     width: 1200,
@@ -109,6 +125,7 @@ function registerVideoIpc() {
 
 app.whenReady().then(() => {
   console.log('[Electron] App iniciado');
+  startEmbeddedApi();
   createWindow();
   videoWindowManager = new VideoWindowManager({
     BrowserWindow,

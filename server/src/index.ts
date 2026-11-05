@@ -33,6 +33,9 @@ app.use(
       'http://localhost:4048',
       'http://localhost:4058',
       'http://localhost:4200',
+      // Electron em produção carrega o front via file:// (origem "null")
+      'null',
+      'file://',
     ],
   })
 );
@@ -637,6 +640,16 @@ app.post('/update-history', (req, res) => {
   return res.json(updatedProgress);
 });
 
-app.listen(process.env.PORT, () => {
+const server = app.listen(process.env.PORT, () => {
   console.log(`API rodando em http://localhost:${process.env.PORT}`);
+});
+
+server.on('error', (error: NodeJS.ErrnoException) => {
+  if (error.code === 'EADDRINUSE') {
+    console.error(
+      `Porta ${process.env.PORT} já está em uso. Assumindo que a API já está rodando.`
+    );
+    return;
+  }
+  throw error;
 });

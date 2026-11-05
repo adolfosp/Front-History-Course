@@ -49,6 +49,8 @@ server/.env.production
 
 **/dist/
 **/release/
+release-api/
+release-embedded/
 
 # Ignore environment files
 src/environments/environment.development.ts
