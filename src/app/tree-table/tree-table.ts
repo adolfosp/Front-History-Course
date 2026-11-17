@@ -115,7 +115,7 @@ export class TreeTable implements OnInit, OnDestroy {
   private currentVideoNode: TodoItemFlatNode | null = null;
   private playbackCompletionRecorded = false;
   private readonly completionThreshold = 0.95;
-  private readonly playbackAutosaveIntervalMs = 15_000;
+  private readonly playbackAutosaveIntervalMs = 60_000;
   private lastPlaybackAutosaveAt = 0;
   private shouldScrollToCourseAfterLoad = false;
   pausedTimes: { [key: string]: string } = {};

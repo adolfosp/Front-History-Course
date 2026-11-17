@@ -2,7 +2,7 @@ const video = document.getElementById('video');
 const title = document.getElementById('video-title');
 const bridge = window.videoPlayerBridge;
 const completionThreshold = 0.95;
-const progressIntervalMs = 15_000;
+const progressIntervalMs = 60_000;
 
 let sessionId = '';
 let completionSent = false;

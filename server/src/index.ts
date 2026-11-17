@@ -238,12 +238,46 @@ function readCourseProgressFile(coursePath: string): CourseProgress {
   return normalizeCourseProgress(raw);
 }
 
+const progressBackupMinIntervalMs = 5 * 60 * 1000;
+
 function writeCourseProgressFile(coursePath: string, progress: CourseProgress): void {
-  fs.writeFileSync(
-    getProgressFilePath(coursePath),
-    JSON.stringify(progress, null, 2),
-    'utf-8'
-  );
+  const filePath = getProgressFilePath(coursePath);
+  const tempPath = `${filePath}.tmp`;
+  const backupPath = `${filePath}.bak`;
+
+  if (fs.existsSync(filePath)) {
+    let existing: CourseProgress | null = null;
+
+    try {
+      existing = readCourseProgressFile(coursePath);
+    } catch {
+      // arquivo ilegivel: segue sem comparar
+    }
+
+    if (existing && Object.keys(existing.history).length > 0) {
+      // Nunca troca um historico existente por um vazio (ex.: localStorage perdido apos crash).
+      if (Object.keys(progress.history).length === 0) {
+        progress = { ...progress, history: existing.history };
+      }
+
+      // Backup espacado para nao castigar o disco a cada salvamento.
+      const backupAge = fs.existsSync(backupPath)
+        ? Date.now() - fs.statSync(backupPath).mtimeMs
+        : Infinity;
+
+      if (backupAge >= progressBackupMinIntervalMs) {
+        try {
+          fs.copyFileSync(filePath, backupPath);
+        } catch {
+          // backup e best-effort
+        }
+      }
+    }
+  }
+
+  // Escrita atomica: grava em arquivo temporario e renomeia.
+  fs.writeFileSync(tempPath, JSON.stringify(progress, null, 2), 'utf-8');
+  fs.renameSync(tempPath, filePath);
 }
 
 function isPathInside(targetPath: string, parentPath: string): boolean {
@@ -554,6 +588,20 @@ app.post('/course-banner/remove', (req, res) => {
   }
 });
 
+function streamFile(stream: fs.ReadStream, res: express.Response) {
+  const cleanup = () => stream.destroy();
+  res.on('close', cleanup);
+  stream.on('error', () => {
+    cleanup();
+    if (!res.headersSent) {
+      res.status(500).end();
+    } else {
+      res.destroy();
+    }
+  });
+  stream.pipe(res);
+}
+
 app.get('/course-banner-file', (req, res) => {
   const coursePath = req.query.coursePath as string;
   const banner = req.query.banner as string;
@@ -572,7 +620,7 @@ app.get('/course-banner-file', (req, res) => {
 
   const contentType = mime.getType(bannerPath) || 'application/octet-stream';
   res.setHeader('Content-Type', contentType);
-  fs.createReadStream(bannerPath).pipe(res);
+  streamFile(fs.createReadStream(bannerPath), res);
 });
 
 app.get('/video', (req, res) => {
@@ -602,14 +650,14 @@ app.get('/video', (req, res) => {
       'Content-Type': contentType,
     });
 
-    file.pipe(res);
+    streamFile(file, res);
   } else {
     res.writeHead(200, {
       'Content-Length': fileSize,
       'Content-Type': contentType,
     });
 
-    fs.createReadStream(videoPath).pipe(res);
+    streamFile(fs.createReadStream(videoPath), res);
   }
 });
 
