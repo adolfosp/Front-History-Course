@@ -3,6 +3,8 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { CardCourse } from './card-course';
 import { ApiService } from '../../services/api.service';
+import { ApiStatusService } from '../../services/api-status.service';
+import { NEVER } from 'rxjs';
 
 describe('CardCourse', () => {
   let component: CardCourse;
@@ -15,6 +17,7 @@ describe('CardCourse', () => {
       providers: [
         provideZonelessChangeDetection(),
         { provide: ApiService, useValue: {} },
+        { provide: ApiStatusService, useValue: { whenReady$: NEVER } },
       ],
     })
     .compileComponents();

@@ -1,9 +1,11 @@
 import express from 'express';
 import fs from 'fs';
+import type { Dirent } from 'fs';
 import path from 'path';
 import cors from 'cors';
 import mime from 'mime';
 
+const fsp = fs.promises;
 const app = express();
 const progressFileName = 'progress.json';
 const bannerFileBaseName = 'history-course-banner';
@@ -212,27 +214,38 @@ function getProgressFilePath(coursePath: string): string {
   return path.join(coursePath, progressFileName);
 }
 
-function readCourseProgressFile(coursePath: string): CourseProgress {
-  const progressFilePath = getProgressFilePath(coursePath);
+async function pathExists(targetPath: string): Promise<boolean> {
+  try {
+    await fsp.access(targetPath);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
-  if (!fs.existsSync(progressFilePath)) {
-    return {
-      bannerImage: null,
-      totalVideos: 0,
-      courseStatus: 'in-progress',
-      history: {},
-    };
+function emptyCourseProgress(): CourseProgress {
+  return {
+    bannerImage: null,
+    totalVideos: 0,
+    courseStatus: 'in-progress',
+    history: {},
+  };
+}
+
+async function readCourseProgressFile(coursePath: string): Promise<CourseProgress> {
+  let raw: string;
+
+  try {
+    raw = (await fsp.readFile(getProgressFilePath(coursePath), 'utf-8')).trim();
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+      return emptyCourseProgress();
+    }
+    throw error;
   }
 
-  const raw = fs.readFileSync(progressFilePath, 'utf-8').trim();
-
   if (!raw) {
-    return {
-      bannerImage: null,
-      totalVideos: 0,
-      courseStatus: 'in-progress',
-      history: {},
-    };
+    return emptyCourseProgress();
   }
 
   return normalizeCourseProgress(raw);
@@ -240,16 +253,43 @@ function readCourseProgressFile(coursePath: string): CourseProgress {
 
 const progressBackupMinIntervalMs = 5 * 60 * 1000;
 
-function writeCourseProgressFile(coursePath: string, progress: CourseProgress): void {
+// Serializa gravacoes por curso: com I/O assincrono, duas gravacoes simultaneas
+// no mesmo arquivo temporario poderiam se sobrepor.
+const progressWriteQueues = new Map<string, Promise<unknown>>();
+
+function writeCourseProgressFile(
+  coursePath: string,
+  progress: CourseProgress
+): Promise<void> {
+  const previous = progressWriteQueues.get(coursePath) ?? Promise.resolve();
+  const next = previous
+    .catch(() => undefined)
+    .then(() => writeCourseProgressFileNow(coursePath, progress));
+
+  progressWriteQueues.set(coursePath, next);
+  const cleanup = () => {
+    if (progressWriteQueues.get(coursePath) === next) {
+      progressWriteQueues.delete(coursePath);
+    }
+  };
+  next.then(cleanup, cleanup);
+
+  return next;
+}
+
+async function writeCourseProgressFileNow(
+  coursePath: string,
+  progress: CourseProgress
+): Promise<void> {
   const filePath = getProgressFilePath(coursePath);
   const tempPath = `${filePath}.tmp`;
   const backupPath = `${filePath}.bak`;
 
-  if (fs.existsSync(filePath)) {
+  if (await pathExists(filePath)) {
     let existing: CourseProgress | null = null;
 
     try {
-      existing = readCourseProgressFile(coursePath);
+      existing = await readCourseProgressFile(coursePath);
     } catch {
       // arquivo ilegivel: segue sem comparar
     }
@@ -261,13 +301,16 @@ function writeCourseProgressFile(coursePath: string, progress: CourseProgress): 
       }
 
       // Backup espacado para nao castigar o disco a cada salvamento.
-      const backupAge = fs.existsSync(backupPath)
-        ? Date.now() - fs.statSync(backupPath).mtimeMs
-        : Infinity;
+      let backupAge = Infinity;
+      try {
+        backupAge = Date.now() - (await fsp.stat(backupPath)).mtimeMs;
+      } catch {
+        // sem backup anterior
+      }
 
       if (backupAge >= progressBackupMinIntervalMs) {
         try {
-          fs.copyFileSync(filePath, backupPath);
+          await fsp.copyFile(filePath, backupPath);
         } catch {
           // backup e best-effort
         }
@@ -276,8 +319,8 @@ function writeCourseProgressFile(coursePath: string, progress: CourseProgress): 
   }
 
   // Escrita atomica: grava em arquivo temporario e renomeia.
-  fs.writeFileSync(tempPath, JSON.stringify(progress, null, 2), 'utf-8');
-  fs.renameSync(tempPath, filePath);
+  await fsp.writeFile(tempPath, JSON.stringify(progress, null, 2), 'utf-8');
+  await fsp.rename(tempPath, filePath);
 }
 
 function isPathInside(targetPath: string, parentPath: string): boolean {
@@ -301,42 +344,82 @@ function getBannerFileName(fileName: string): string {
   return `${bannerFileBaseName}${safeExtension}`;
 }
 
-function findAutomaticBanner(coursePath: string): string | null {
-  const candidates = fs
-    .readdirSync(coursePath)
-    .filter((entry) => {
-      const fullPath = path.join(coursePath, entry);
+// Dirent evita um stat por arquivo; links simbolicos sao resolvidos sob demanda.
+async function direntIsFile(entry: Dirent, fullPath: string): Promise<boolean> {
+  if (entry.isFile()) {
+    return true;
+  }
 
-      return (
-        fs.statSync(fullPath).isFile() &&
-        allowedBannerExtensions.has(path.extname(entry).toLowerCase())
-      );
-    })
-    .sort((left, right) => {
-      const leftLower = left.toLowerCase();
-      const rightLower = right.toLowerCase();
-      const leftIndex = automaticBannerPriorityNames.findIndex((name) =>
-        leftLower.includes(name)
-      );
-      const rightIndex = automaticBannerPriorityNames.findIndex((name) =>
-        rightLower.includes(name)
-      );
-      const safeLeft = leftIndex === -1 ? Number.MAX_SAFE_INTEGER : leftIndex;
-      const safeRight =
-        rightIndex === -1 ? Number.MAX_SAFE_INTEGER : rightIndex;
+  if (entry.isSymbolicLink()) {
+    try {
+      return (await fsp.stat(fullPath)).isFile();
+    } catch {
+      return false;
+    }
+  }
 
-      if (safeLeft !== safeRight) {
-        return safeLeft - safeRight;
-      }
+  return false;
+}
 
-      return left.localeCompare(right);
-    });
+async function direntIsDirectory(
+  entry: Dirent,
+  fullPath: string
+): Promise<boolean> {
+  if (entry.isDirectory()) {
+    return true;
+  }
+
+  if (entry.isSymbolicLink()) {
+    try {
+      return (await fsp.stat(fullPath)).isDirectory();
+    } catch {
+      return false;
+    }
+  }
+
+  return false;
+}
+
+async function findAutomaticBanner(coursePath: string): Promise<string | null> {
+  const entries = await fsp.readdir(coursePath, { withFileTypes: true });
+  const candidates: string[] = [];
+
+  for (const entry of entries) {
+    if (
+      allowedBannerExtensions.has(path.extname(entry.name).toLowerCase()) &&
+      (await direntIsFile(entry, path.join(coursePath, entry.name)))
+    ) {
+      candidates.push(entry.name);
+    }
+  }
+
+  candidates.sort((left, right) => {
+    const leftLower = left.toLowerCase();
+    const rightLower = right.toLowerCase();
+    const leftIndex = automaticBannerPriorityNames.findIndex((name) =>
+      leftLower.includes(name)
+    );
+    const rightIndex = automaticBannerPriorityNames.findIndex((name) =>
+      rightLower.includes(name)
+    );
+    const safeLeft = leftIndex === -1 ? Number.MAX_SAFE_INTEGER : leftIndex;
+    const safeRight = rightIndex === -1 ? Number.MAX_SAFE_INTEGER : rightIndex;
+
+    if (safeLeft !== safeRight) {
+      return safeLeft - safeRight;
+    }
+
+    return left.localeCompare(right);
+  });
 
   return candidates[0] ?? null;
 }
 
-function removeExistingBannerFiles(coursePath: string, keepFileName: string | null = null): void {
-  for (const entry of fs.readdirSync(coursePath)) {
+async function removeExistingBannerFiles(
+  coursePath: string,
+  keepFileName: string | null = null
+): Promise<void> {
+  for (const entry of await fsp.readdir(coursePath)) {
     if (!entry.startsWith(`${bannerFileBaseName}.`)) {
       continue;
     }
@@ -347,36 +430,42 @@ function removeExistingBannerFiles(coursePath: string, keepFileName: string | nu
 
     const filePath = path.join(coursePath, entry);
 
-    if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
-      fs.unlinkSync(filePath);
+    try {
+      if ((await fsp.stat(filePath)).isFile()) {
+        await fsp.unlink(filePath);
+      }
+    } catch {
+      // arquivo removido entre a listagem e a exclusao
     }
   }
 }
 
-function ensureExistingDirectory(dirPath: string): boolean {
-  return fs.existsSync(dirPath) && fs.statSync(dirPath).isDirectory();
+async function ensureExistingDirectory(dirPath: string): Promise<boolean> {
+  try {
+    return (await fsp.stat(dirPath)).isDirectory();
+  } catch {
+    return false;
+  }
 }
 
-function countVideoFiles(
+async function countVideoFiles(
   dirPath: string,
   maxDepth = 10,
   currentDepth = 0
-): number {
+): Promise<number> {
   if (currentDepth > maxDepth) {
     return 0;
   }
 
   let totalVideos = 0;
 
-  for (const item of fs.readdirSync(dirPath)) {
-    const fullPath = path.join(dirPath, item);
+  for (const entry of await fsp.readdir(dirPath, { withFileTypes: true })) {
+    const fullPath = path.join(dirPath, entry.name);
 
     try {
-      const itemStats = fs.statSync(fullPath);
-
-      if (itemStats.isDirectory()) {
-        totalVideos += countVideoFiles(fullPath, maxDepth, currentDepth + 1);
-      } else if (itemStats.isFile() && isVideoFile(item)) {
+      if (await direntIsDirectory(entry, fullPath)) {
+        totalVideos += await countVideoFiles(fullPath, maxDepth, currentDepth + 1);
+      } else if (isVideoFile(entry.name) && (await direntIsFile(entry, fullPath))) {
         totalVideos++;
       }
     } catch (error) {
@@ -387,21 +476,22 @@ function countVideoFiles(
   return totalVideos;
 }
 
-function getCourseProgressWithAutomaticBanner(
+async function getCourseProgressWithAutomaticBanner(
   coursePath: string
-): CourseProgress {
-  const progress = {
-    ...readCourseProgressFile(coursePath),
-    totalVideos: countVideoFiles(coursePath),
-  };
+): Promise<CourseProgress> {
+  const [storedProgress, totalVideos] = await Promise.all([
+    readCourseProgressFile(coursePath),
+    countVideoFiles(coursePath),
+  ]);
+  const progress = { ...storedProgress, totalVideos };
   const currentBannerPath =
     progress.bannerImage && resolveBannerPath(coursePath, progress.bannerImage);
 
-  if (currentBannerPath && fs.existsSync(currentBannerPath)) {
+  if (currentBannerPath && (await pathExists(currentBannerPath))) {
     return progress;
   }
 
-  const automaticBanner = findAutomaticBanner(coursePath);
+  const automaticBanner = await findAutomaticBanner(coursePath);
 
   if (!automaticBanner) {
     if (progress.bannerImage === null) {
@@ -412,7 +502,7 @@ function getCourseProgressWithAutomaticBanner(
       ...progress,
       bannerImage: null,
     };
-    writeCourseProgressFile(coursePath, updatedProgress);
+    await writeCourseProgressFile(coursePath, updatedProgress);
     return updatedProgress;
   }
 
@@ -424,20 +514,15 @@ function getCourseProgressWithAutomaticBanner(
     ...progress,
     bannerImage: automaticBanner,
   };
-  writeCourseProgressFile(coursePath, updatedProgress);
+  await writeCourseProgressFile(coursePath, updatedProgress);
   return updatedProgress;
 }
 
-function readDirectoryTree(
+async function readDirectoryTree(
   dirPath: string,
   maxDepth: number,
   currentDepth = 0
-): TreeNode | null {
-  const stats = fs.statSync(dirPath);
-  if (!stats.isDirectory()) {
-    return null;
-  }
-
+): Promise<TreeNode> {
   const tree: TreeNode = {
     name: path.basename(dirPath),
     path: dirPath,
@@ -449,22 +534,22 @@ function readDirectoryTree(
     return tree;
   }
 
-  const items = fs.readdirSync(dirPath).sort(naturalSort);
+  const entries = (await fsp.readdir(dirPath, { withFileTypes: true })).sort(
+    (left, right) => naturalSort(left.name, right.name)
+  );
 
-  for (const item of items) {
-    const fullPath = path.join(dirPath, item);
+  for (const entry of entries) {
+    const fullPath = path.join(dirPath, entry.name);
 
     try {
-      const itemStats = fs.statSync(fullPath);
-
-      if (itemStats.isDirectory()) {
-        const subTree = readDirectoryTree(fullPath, maxDepth, currentDepth + 1);
-        if (subTree && subTree.children && subTree.children.length > 0) {
+      if (await direntIsDirectory(entry, fullPath)) {
+        const subTree = await readDirectoryTree(fullPath, maxDepth, currentDepth + 1);
+        if (subTree.children && subTree.children.length > 0) {
           tree.children!.push(subTree);
         }
-      } else if (itemStats.isFile() && isVideoFile(item)) {
+      } else if (isVideoFile(entry.name) && (await direntIsFile(entry, fullPath))) {
         tree.children!.push({
-          name: item,
+          name: entry.name,
           path: fullPath,
           type: 'video',
         });
@@ -477,7 +562,11 @@ function readDirectoryTree(
   return tree;
 }
 
-app.get('/tree', (req, res) => {
+app.get('/health', (_req, res) => {
+  res.json({ status: 'ok' });
+});
+
+app.get('/tree', async (req, res) => {
   const dir = req.query.dir as string;
   const depth = parseInt(req.query.depth as string, 10) || 10;
 
@@ -485,29 +574,29 @@ app.get('/tree', (req, res) => {
     return res.status(400).json({ error: 'Parâmetro "dir" é obrigatório.' });
   }
 
-  if (!ensureExistingDirectory(dir)) {
+  if (!(await ensureExistingDirectory(dir))) {
     return res.status(404).json({ error: 'Diretório não encontrado.' });
   }
 
-  const tree = readDirectoryTree(dir, depth);
+  const tree = await readDirectoryTree(dir, depth);
   return res.json(tree);
 });
 
-app.get('/course-progress', (req, res) => {
+app.get('/course-progress', async (req, res) => {
   const coursePath = req.query.path as string;
 
   if (!coursePath) {
     return res.status(400).json({ error: 'Parâmetro "path" é obrigatório.' });
   }
 
-  if (!ensureExistingDirectory(coursePath)) {
+  if (!(await ensureExistingDirectory(coursePath))) {
     return res.status(404).json({ error: 'Pasta do curso não encontrada.' });
   }
 
-  return res.json(getCourseProgressWithAutomaticBanner(coursePath));
+  return res.json(await getCourseProgressWithAutomaticBanner(coursePath));
 });
 
-app.post('/course-progress', (req, res) => {
+app.post('/course-progress', async (req, res) => {
   const coursePath = req.body.path as string;
   const progress = normalizeCourseProgress(req.body.progress);
 
@@ -515,15 +604,15 @@ app.post('/course-progress', (req, res) => {
     return res.status(400).json({ error: 'Parâmetro "path" é obrigatório.' });
   }
 
-  if (!ensureExistingDirectory(coursePath)) {
+  if (!(await ensureExistingDirectory(coursePath))) {
     return res.status(404).json({ error: 'Pasta do curso não encontrada.' });
   }
 
-  writeCourseProgressFile(coursePath, progress);
+  await writeCourseProgressFile(coursePath, progress);
   return res.json(progress);
 });
 
-app.post('/course-banner', (req, res) => {
+app.post('/course-banner', async (req, res) => {
   const coursePath = req.body.path as string;
   const fileName = req.body.fileName as string;
   const content = req.body.content as string;
@@ -534,7 +623,7 @@ app.post('/course-banner', (req, res) => {
     });
   }
 
-  if (!ensureExistingDirectory(coursePath)) {
+  if (!(await ensureExistingDirectory(coursePath))) {
     return res.status(404).json({ error: 'Pasta do curso não encontrada.' });
   }
 
@@ -543,16 +632,16 @@ app.post('/course-banner', (req, res) => {
     const bannerPath = path.join(coursePath, bannerFileName);
     const base64Content = content.includes(',') ? content.split(',').pop() ?? '' : content;
 
-    removeExistingBannerFiles(coursePath, bannerFileName);
-    fs.writeFileSync(bannerPath, Buffer.from(base64Content, 'base64'));
+    await removeExistingBannerFiles(coursePath, bannerFileName);
+    await fsp.writeFile(bannerPath, Buffer.from(base64Content, 'base64'));
 
-    const currentProgress = getCourseProgressWithAutomaticBanner(coursePath);
+    const currentProgress = await getCourseProgressWithAutomaticBanner(coursePath);
     const updatedProgress: CourseProgress = {
       ...currentProgress,
       bannerImage: bannerFileName,
     };
 
-    writeCourseProgressFile(coursePath, updatedProgress);
+    await writeCourseProgressFile(coursePath, updatedProgress);
     return res.json(updatedProgress);
   } catch (error) {
     console.error('Erro ao salvar banner do curso:', error);
@@ -560,27 +649,27 @@ app.post('/course-banner', (req, res) => {
   }
 });
 
-app.post('/course-banner/remove', (req, res) => {
+app.post('/course-banner/remove', async (req, res) => {
   const coursePath = req.body.path as string;
 
   if (!coursePath) {
     return res.status(400).json({ error: 'Parâmetro "path" é obrigatório.' });
   }
 
-  if (!ensureExistingDirectory(coursePath)) {
+  if (!(await ensureExistingDirectory(coursePath))) {
     return res.status(404).json({ error: 'Pasta do curso não encontrada.' });
   }
 
   try {
-    removeExistingBannerFiles(coursePath);
+    await removeExistingBannerFiles(coursePath);
 
-    const currentProgress = getCourseProgressWithAutomaticBanner(coursePath);
+    const currentProgress = await getCourseProgressWithAutomaticBanner(coursePath);
     const updatedProgress: CourseProgress = {
       ...currentProgress,
       bannerImage: null,
     };
 
-    writeCourseProgressFile(coursePath, updatedProgress);
+    await writeCourseProgressFile(coursePath, updatedProgress);
     return res.json(updatedProgress);
   } catch (error) {
     console.error('Erro ao remover banner do curso:', error);
@@ -602,7 +691,7 @@ function streamFile(stream: fs.ReadStream, res: express.Response) {
   stream.pipe(res);
 }
 
-app.get('/course-banner-file', (req, res) => {
+app.get('/course-banner-file', async (req, res) => {
   const coursePath = req.query.coursePath as string;
   const banner = req.query.banner as string;
 
@@ -614,7 +703,7 @@ app.get('/course-banner-file', (req, res) => {
 
   const bannerPath = resolveBannerPath(coursePath, banner);
 
-  if (!bannerPath || !fs.existsSync(bannerPath)) {
+  if (!bannerPath || !(await pathExists(bannerPath))) {
     return res.status(404).json({ error: 'Banner não encontrado.' });
   }
 
@@ -623,14 +712,17 @@ app.get('/course-banner-file', (req, res) => {
   streamFile(fs.createReadStream(bannerPath), res);
 });
 
-app.get('/video', (req, res) => {
+app.get('/video', async (req, res) => {
   const videoPath = decodeURIComponent(req.query.path as string);
 
-  if (!fs.existsSync(videoPath)) {
+  let stat: fs.Stats;
+
+  try {
+    stat = await fsp.stat(videoPath);
+  } catch {
     return res.status(404).send('Vídeo não encontrado');
   }
 
-  const stat = fs.statSync(videoPath);
   const fileSize = stat.size;
   const range = req.headers.range;
   const contentType = mime.getType(videoPath) || 'video/mp4';
@@ -661,7 +753,7 @@ app.get('/video', (req, res) => {
   }
 });
 
-app.post('/update-history', (req, res) => {
+app.post('/update-history', async (req, res) => {
   const history = req.body.history;
   const coursePath = req.body.path as string;
 
@@ -671,11 +763,11 @@ app.post('/update-history', (req, res) => {
     });
   }
 
-  if (!ensureExistingDirectory(coursePath)) {
+  if (!(await ensureExistingDirectory(coursePath))) {
     return res.status(404).json({ error: 'Pasta do curso não encontrada.' });
   }
 
-  const currentProgress = getCourseProgressWithAutomaticBanner(coursePath);
+  const currentProgress = await getCourseProgressWithAutomaticBanner(coursePath);
   const updatedProgress: CourseProgress = {
     ...currentProgress,
     history:
@@ -684,12 +776,20 @@ app.post('/update-history', (req, res) => {
         : normalizeHistory(history),
   };
 
-  writeCourseProgressFile(coursePath, updatedProgress);
+  await writeCourseProgressFile(coursePath, updatedProgress);
   return res.json(updatedProgress);
 });
 
+// Quando roda como utilityProcess do Electron, avisa o processo principal.
+const parentPort = (
+  process as unknown as {
+    parentPort?: { postMessage(message: unknown): void };
+  }
+).parentPort;
+
 const server = app.listen(process.env.PORT, () => {
   console.log(`API rodando em http://localhost:${process.env.PORT}`);
+  parentPort?.postMessage({ type: 'ready' });
 });
 
 server.on('error', (error: NodeJS.ErrnoException) => {
@@ -697,6 +797,7 @@ server.on('error', (error: NodeJS.ErrnoException) => {
     console.error(
       `Porta ${process.env.PORT} já está em uso. Assumindo que a API já está rodando.`
     );
+    parentPort?.postMessage({ type: 'ready', reused: true });
     return;
   }
   throw error;

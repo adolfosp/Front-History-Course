@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, screen } = require('electron');
+const { app, BrowserWindow, ipcMain, screen, utilityProcess } = require('electron');
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
@@ -13,6 +13,9 @@ let mainWindow = null;
 let videoWindowManager = null;
 let quitInProgress = false;
 let allowQuit = false;
+let apiProcess = null;
+let apiRestartCount = 0;
+const maxApiRestarts = 3;
 
 function getBoundsFilePath() {
   return path.join(app.getPath('userData'), 'video-window-bounds.json');
@@ -40,14 +43,52 @@ function startEmbeddedApi() {
     return;
   }
 
-  process.env.PORT = process.env.PORT || '4047';
-  process.env.NODE_ENV = process.env.NODE_ENV || 'production';
+  // A API usa I/O pesado em pastas de cursos. Rodando em um processo separado,
+  // ela nunca bloqueia o processo principal (e, com isso, a janela do app).
+  apiProcess = utilityProcess.fork(
+    path.join(__dirname, '../server/dist/index.js'),
+    [],
+    {
+      serviceName: 'history-course-api',
+      env: {
+        ...process.env,
+        PORT: process.env.PORT || '4047',
+        NODE_ENV: process.env.NODE_ENV || 'production',
+      },
+    }
+  );
 
-  try {
-    require('../server/dist/index.js');
-  } catch (error) {
-    console.error('[Electron] Falha ao iniciar a API embutida:', error);
-  }
+  const child = apiProcess;
+
+  child.on('message', (message) => {
+    if (message && message.type === 'ready') {
+      apiRestartCount = 0;
+      console.log('[Electron] API pronta');
+    }
+  });
+
+  child.on('exit', (code) => {
+    if (apiProcess === child) {
+      apiProcess = null;
+    }
+
+    if (allowQuit || quitInProgress) {
+      return;
+    }
+
+    console.error(`[Electron] API encerrou inesperadamente (codigo ${code}).`);
+
+    if (apiRestartCount < maxApiRestarts) {
+      apiRestartCount++;
+      setTimeout(startEmbeddedApi, 1000);
+    }
+  });
+}
+
+function stopEmbeddedApi() {
+  const child = apiProcess;
+  apiProcess = null;
+  child?.kill();
 }
 
 function createWindow() {
@@ -125,8 +166,10 @@ function registerVideoIpc() {
 
 app.whenReady().then(() => {
   console.log('[Electron] App iniciado');
-  startEmbeddedApi();
+  // A janela abre primeiro (mostrando o indicador de carregamento) e a API
+  // sobe em paralelo, em outro processo.
   createWindow();
+  startEmbeddedApi();
   videoWindowManager = new VideoWindowManager({
     BrowserWindow,
     playerHtmlPath: path.join(__dirname, 'player', 'index.html'),
@@ -147,6 +190,7 @@ app.whenReady().then(() => {
 app.on('before-quit', (event) => {
   if (allowQuit) {
     videoWindowManager?.closeAll();
+    stopEmbeddedApi();
     return;
   }
 

@@ -535,3 +535,44 @@ input {
     grid-template-columns: 1fr;
   }
 }
+
+.library-heading__status {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.library-sync,
+.card__sync {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.card__sync {
+  align-self: start;
+  color: #f8fafc;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+
+.library-sync__spinner,
+.card__sync-spinner {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid rgba(var(--accent-rgb), 0.25);
+  border-top-color: var(--accent);
+  animation: card-sync-spin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes card-sync-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

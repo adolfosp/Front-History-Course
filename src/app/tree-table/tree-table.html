@@ -5,7 +5,7 @@
     <div class="form-section__copy">
       <span>Curso baixado</span>
       <h2>Abrir por caminho local</h2>
-      <p>Use este campo quando a pasta ja estiver no computador. Para cursos futuros, use a fila acima.</p>
+      <p>Use este campo quando a pasta já estiver no computador. Para cursos futuros, use a fila acima.</p>
     </div>
 
     <form [formGroup]="form" (ngSubmit)="onSubmit()" class="path-form">
@@ -40,7 +40,7 @@
       @if (isLoadingCourse) {
       <div class="selected-course-banner__loading">
         <span class="selected-course-banner__spinner" aria-hidden="true"></span>
-        <span>Carregando conteudo de {{ loadingCourseName || selectedCourse.name }}...</span>
+        <span>Carregando conteúdo de {{ loadingCourseName || selectedCourse.name }}...</span>
       </div>
       }
       <div class="selected-course-banner__stats">
@@ -48,7 +48,7 @@
           {{ courseStats.watchedVideos }}/{{ courseStats.totalVideos }} videos
         </span>
         <span class="selected-course-banner__stat">
-          {{ courseStats.percentage }}% concluido
+          {{ courseStats.percentage }}% concluído
         </span>
         <button
           type="button"
@@ -117,7 +117,7 @@
     <div class="course-loading-state" aria-live="polite">
       <span class="course-loading-state__spinner" aria-hidden="true"></span>
       <h3>Abrindo curso</h3>
-      <p>Estamos lendo as pastas e montando a arvore de videos.</p>
+      <p>Estamos lendo as pastas e montando a árvore de vídeos.</p>
     </div>
     } @else {
     <mat-tree [dataSource]="dataSource" [treeControl]="treeControl" id="mat-tree">
@@ -157,14 +157,14 @@
           @let playbackValue = getTimePublished(node.item);
           @if (playbackValue && playbackValue != '0') {
           <span class="file-meta__chip paused-time">
-            <span class="paused-time__label">Video pausado em</span>
+            <span class="paused-time__label">Vídeo pausado em</span>
             <span class="paused-time__value">{{ playbackValue }}</span>
           </span>
           }
           @let completedAt = getVideoCompletedAt(node);
           @if (completedAt) {
           <span class="file-meta__chip file-meta__chip--completed">
-            Concluido em {{ completedAt }}
+            Concluído em {{ completedAt }}
           </span>
           }
         </div>
@@ -210,7 +210,7 @@
         (pause)="onVideoPaused($event)"
         (timeupdate)="onVideoTimeUpdate($event)">
         <source [src]="videoUrl" type="video/mp4" />
-        Seu navegador nao suporta video HTML5.
+        Seu navegador não suporta vídeo HTML5.
       </video>
     </div>
   </div>

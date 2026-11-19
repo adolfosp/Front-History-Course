@@ -9,6 +9,7 @@ import {
 import { RouterModule } from '@angular/router';
 import packageJson from '../../package.json';
 import { ThemeService } from './services/theme.service';
+import { ApiStatusService } from './services/api-status.service';
 
 @Component({
   selector: 'app-root',
@@ -39,7 +40,8 @@ export class App implements AfterViewInit, OnDestroy {
 
   constructor(
     private readonly themeService: ThemeService,
-    private readonly ngZone: NgZone
+    private readonly ngZone: NgZone,
+    protected readonly apiStatus: ApiStatusService
   ) {}
 
   ngAfterViewInit(): void {

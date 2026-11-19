@@ -4,7 +4,15 @@
       <span class="eyebrow">Biblioteca</span>
       <h2>Seus cursos</h2>
     </div>
-    <span class="library-count">{{ items().length }} salvos</span>
+    <div class="library-heading__status">
+      @if (syncTotal() > 0 && syncDone() < syncTotal()) {
+      <span class="library-sync" role="status">
+        <span class="library-sync__spinner" aria-hidden="true"></span>
+        Atualizando cursos {{ syncDone() }}/{{ syncTotal() }}...
+      </span>
+      }
+      <span class="library-count">{{ items().length }} salvos</span>
+    </div>
   </div>
 
   <form
@@ -58,6 +66,12 @@
             <span class="card__badge">
               {{ item.bannerImage ? 'Com capa' : 'Sem capa' }}
             </span>
+            @if (isSyncing(item.path)) {
+            <span class="card__sync" role="status">
+              <span class="card__sync-spinner" aria-hidden="true"></span>
+              Atualizando...
+            </span>
+            }
 
             <button type="button" (click)="emitClick(item)" class="card__title">
               {{ item.name }}
@@ -194,7 +208,7 @@
 
   <section class="completed-section">
     <div class="section-title">
-      <h3>Concluidos</h3>
+      <h3>Concluídos</h3>
       <span>{{ completedCourses.length }}</span>
     </div>
 
@@ -271,7 +285,7 @@
     } @else {
     <div class="empty empty--inline">
       <mat-icon>do_not_disturb_on</mat-icon>
-      <p>Cursos que voce desistir aparecem aqui.</p>
+      <p>Cursos que você desistir aparecem aqui.</p>
     </div>
     }
   </section>

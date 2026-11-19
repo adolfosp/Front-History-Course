@@ -4,7 +4,7 @@
     <div class="brand">
       <img src="front-history-course.svg" alt="History Course">
       <div>
-        <h1>Historico de Cursos</h1>
+        <h1>Histórico de Cursos</h1>
         <p>Organize a fila, abra cursos baixados e acompanhe seu progresso.</p>
       </div>
     </div>
@@ -20,3 +20,29 @@
 
   <span id="version">v{{version}}</span>
 </main>
+
+@if (apiStatus.status() !== 'ready') {
+<div class="api-overlay" role="status" aria-live="polite">
+  <div class="api-overlay__card">
+    @if (apiStatus.status() === 'starting') {
+    <span class="api-overlay__spinner" aria-hidden="true"></span>
+    <h2>Iniciando o serviço local...</h2>
+    <p>
+      {{ apiStatus.slow()
+        ? 'Está demorando um pouco mais que o normal. Continue aguardando, já estamos quase lá.'
+        : 'Preparando seus cursos. Isso leva apenas alguns segundos.' }}
+    </p>
+    } @else {
+    <span class="api-overlay__icon" aria-hidden="true">!</span>
+    <h2>Não foi possível iniciar o serviço local</h2>
+    <p>
+      O serviço não respondeu a tempo. Verifique se a porta está livre ou
+      reinicie o aplicativo.
+    </p>
+    <button type="button" class="api-overlay__retry" (click)="apiStatus.retry()">
+      Tentar novamente
+    </button>
+    }
+  </div>
+</div>
+}

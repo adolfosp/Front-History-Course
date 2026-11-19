@@ -5,10 +5,21 @@ import {
   moveItemInArray,
 } from '@angular/cdk/drag-drop';
 import { MatIconModule } from '@angular/material/icon';
-import { Subscription } from 'rxjs';
+import {
+  EMPTY,
+  Subscription,
+  catchError,
+  finalize,
+  from,
+  map,
+  mergeMap,
+  switchMap,
+  tap,
+} from 'rxjs';
 import { CardCourseType, QueuedCourseType } from '../../domain/types/CardHouse';
 import { CourseStorageService } from '../../services/course-storage.service';
 import { ApiService } from '../../services/api.service';
+import { ApiStatusService } from '../../services/api-status.service';
 
 @Component({
   selector: 'app-card-course',
@@ -21,11 +32,16 @@ export class CardCourse implements OnInit, OnDestroy {
 
   items = signal<CardCourseType[]>([]);
   queuedCourses = signal<QueuedCourseType[]>([]);
+  syncingPaths = signal<ReadonlySet<string>>(new Set());
+  syncTotal = signal(0);
+  syncDone = signal(0);
+  private readonly maxConcurrentSyncs = 2;
   private readonly subscriptions = new Subscription();
 
   constructor(
     private readonly courseStorageService: CourseStorageService,
-    private readonly apiService: ApiService
+    private readonly apiService: ApiService,
+    private readonly apiStatus: ApiStatusService
   ) {}
 
   ngOnInit(): void {
@@ -218,68 +234,83 @@ export class CardCourse implements OnInit, OnDestroy {
     });
   }
 
-  private syncCoursesFromFolderState(): void {
-    for (const course of this.courseStorageService.getCoursesSnapshot()) {
-      this.apiService.getCourseProgress(course.path).subscribe({
-        next: (progress) => {
-          const currentProgress = this.courseStorageService.getCourseProgress(
-            course.path
-          );
-          const mergedProgress = {
-            ...progress,
-            courseStatus:
-              currentProgress.courseStatus !== 'in-progress'
-                ? currentProgress.courseStatus
-                : progress.courseStatus,
-            totalVideos: Math.max(
-              progress.totalVideos ?? 0,
-              currentProgress.totalVideos ?? 0
-            ),
-          };
-
-          this.courseStorageService.saveCourseProgress(
-            course.path,
-            mergedProgress
-          );
-          this.syncCourseVideoCount(course.path, mergedProgress);
-        },
-        error: (error) => {
-          console.error('Erro ao sincronizar dados do curso salvo:', error);
-          this.syncCourseVideoCount(
-            course.path,
-            this.courseStorageService.getCourseProgress(course.path)
-          );
-        },
-      });
-    }
+  isSyncing(path: string): boolean {
+    return this.syncingPaths().has(path);
   }
 
-  private syncCourseVideoCount(
-    coursePath: string,
-    progress: ReturnType<CourseStorageService['getCourseProgress']>
-  ): void {
-    this.apiService.getCourseVideoCount(coursePath).subscribe({
-      next: (totalVideos) => {
-        if (totalVideos <= 0 || progress.totalVideos === totalVideos) {
-          return;
-        }
+  private syncCoursesFromFolderState(): void {
+    const courses = this.courseStorageService.getCoursesSnapshot();
 
-        const updatedProgress = {
+    if (!courses.length) {
+      return;
+    }
+
+    this.syncTotal.set(courses.length);
+    this.syncDone.set(0);
+    this.syncingPaths.set(new Set(courses.map((course) => course.path)));
+
+    // Espera a API subir e varre poucos cursos por vez: cada varredura percorre
+    // a pasta inteira e disparar todas juntas sobrecarrega o disco.
+    this.subscriptions.add(
+      this.apiStatus.whenReady$
+        .pipe(
+          switchMap(() =>
+            from(courses).pipe(
+              mergeMap(
+                (course) => this.syncCourse(course.path),
+                this.maxConcurrentSyncs
+              )
+            )
+          )
+        )
+        .subscribe()
+    );
+  }
+
+  private syncCourse(coursePath: string) {
+    return this.apiService.getCourseProgress(coursePath).pipe(
+      tap((progress) => {
+        const currentProgress =
+          this.courseStorageService.getCourseProgress(coursePath);
+        // totalVideos vem da varredura recem-feita no servidor.
+        const totalVideos =
+          (progress.totalVideos ?? 0) > 0
+            ? progress.totalVideos
+            : currentProgress.totalVideos ?? 0;
+        const mergedProgress = {
           ...progress,
+          courseStatus:
+            currentProgress.courseStatus !== 'in-progress'
+              ? currentProgress.courseStatus
+              : progress.courseStatus,
           totalVideos,
         };
 
-        this.courseStorageService.saveCourseProgress(coursePath, updatedProgress);
-        this.apiService.updateCourseProgressOnFolder(coursePath, updatedProgress)
-          .subscribe({
-            error: (error) => {
-              console.error('Erro ao salvar total de videos do curso:', error);
-            },
-          });
-      },
-      error: (error) => {
-        console.error('Erro ao contar videos do curso salvo:', error);
-      },
-    });
+        this.courseStorageService.saveCourseProgress(coursePath, mergedProgress);
+
+        if (totalVideos > 0 && totalVideos !== currentProgress.totalVideos) {
+          this.apiService
+            .updateCourseProgressOnFolder(coursePath, mergedProgress)
+            .subscribe({
+              error: (error) => {
+                console.error('Erro ao salvar total de vídeos do curso:', error);
+              },
+            });
+        }
+      }),
+      map(() => undefined),
+      catchError((error) => {
+        console.error('Erro ao sincronizar dados do curso salvo:', error);
+        return EMPTY;
+      }),
+      finalize(() => {
+        this.syncingPaths.update((paths) => {
+          const next = new Set(paths);
+          next.delete(coursePath);
+          return next;
+        });
+        this.syncDone.update((done) => done + 1);
+      })
+    );
   }
 }

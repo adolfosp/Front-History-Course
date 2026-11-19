@@ -82,6 +82,7 @@ export class TreeTable implements OnInit, OnDestroy {
   videoFileName = '';
   selectedCourse: CardCourseType | null = null;
   isLoadingCourse = false;
+  private isOpeningVideo = false;
   loadingCourseName = '';
   autoPlayNext = this.readBooleanPreference(
     'history-course:auto-play-next',
@@ -182,8 +183,8 @@ export class TreeTable implements OnInit, OnDestroy {
 
         if (update.completed) {
           this.toast.success(
-            `Video "${update.videoKey.split('/').at(-1)}" concluido!`,
-            'Concluido',
+            `Vídeo "${update.videoKey.split('/').at(-1)}" concluído!`,
+            'Concluído',
             3000
           );
         }
@@ -284,8 +285,8 @@ export class TreeTable implements OnInit, OnDestroy {
     this.completeCurrentVideoPlayback();
 
     this.toast.success(
-      `Video "${this.videoFileName}" concluido!`,
-      'Concluido',
+      `Vídeo "${this.videoFileName}" concluído!`,
+      'Concluído',
       3000
     );
 
@@ -466,7 +467,7 @@ export class TreeTable implements OnInit, OnDestroy {
       history,
     });
 
-    this.toast.success('Curso marcado como concluido.', 'Concluido', 3000);
+    this.toast.success('Curso marcado como concluído.', 'Concluído', 3000);
   }
 
   abandonSelectedCourse(): void {
@@ -631,6 +632,13 @@ export class TreeTable implements OnInit, OnDestroy {
           url: `${environment.videoPath}?path=${encodeURIComponent(item.path)}`,
         }));
 
+      if (this.isOpeningVideo) {
+        return;
+      }
+
+      this.isOpeningVideo = true;
+      this.toast.info(`Abrindo "${node.item}"...`, 'Aguarde', 2500);
+
       void this.videoWindowService
         .openPlaylist({
           coursePath: this.pathToCourse,
@@ -638,10 +646,13 @@ export class TreeTable implements OnInit, OnDestroy {
           startVideoKey: node.path,
           autoplay: this.autoPlayNext,
         })
+        .finally(() => {
+          this.isOpeningVideo = false;
+        })
         .catch((error) => {
-          console.error('Erro ao abrir janela de video:', error);
+          console.error('Erro ao abrir janela de vídeo:', error);
           this.toast.danger(
-            'Nao foi possivel abrir a janela de video.',
+            'Não foi possível abrir a janela de vídeo.',
             'Erro',
             3000
           );
@@ -765,7 +776,7 @@ export class TreeTable implements OnInit, OnDestroy {
         this.finishCourseLoading();
       },
       error: (error) => {
-        console.error('Erro ao carregar conteudo do curso:', error);
+        console.error('Erro ao carregar conteúdo do curso:', error);
         this.finishCourseLoading();
       },
     });
